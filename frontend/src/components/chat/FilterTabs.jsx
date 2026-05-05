@@ -1,9 +1,9 @@
 const filters = [
-  { id: 'all', label: 'All' },
-  { id: 'text', label: 'Text' },
-  { id: 'voice', label: 'Voice' },
-  { id: 'video', label: 'Video' },
-]
+  { id: "all", label: "All" },
+  { id: "text", label: "Text" },
+  { id: "voice", label: "Voice" },
+  { id: "video", label: "Video" },
+];
 
 function FilterTabs({ selectedFilter, onChange }) {
   return (
@@ -13,7 +13,7 @@ function FilterTabs({ selectedFilter, onChange }) {
           key={filter.id}
           type="button"
           className={`filter-tab${
-            selectedFilter === filter.id ? ' active' : ''
+            selectedFilter === filter.id ? " active" : ""
           }`}
           onClick={() => onChange(filter.id)}
         >
@@ -21,7 +21,7 @@ function FilterTabs({ selectedFilter, onChange }) {
         </button>
       ))}
     </div>
-  )
+  );
 }
 
-export default FilterTabs
+export default FilterTabs;

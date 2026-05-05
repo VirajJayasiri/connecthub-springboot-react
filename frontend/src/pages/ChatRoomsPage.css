@@ -3,7 +3,7 @@
   flex-direction: column;
   gap: 28px;
   padding-top: 8px;
-  font-family: 'Manrope', 'Space Grotesk', 'Segoe UI', Arial, sans-serif;
+  font-family: "Manrope", "Space Grotesk", "Segoe UI", Arial, sans-serif;
 }
 
 .search-create {
@@ -100,7 +100,9 @@
   border: 1px solid var(--border);
   background: var(--white);
   box-shadow: var(--shadow-soft);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .room-card.clickable {
@@ -205,7 +207,9 @@
   font-weight: 600;
   letter-spacing: 0.2px;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.2s ease;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
 }
 
 .room-join-btn:hover {

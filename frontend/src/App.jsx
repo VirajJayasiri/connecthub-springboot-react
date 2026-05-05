@@ -1,7 +1,7 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
-import Navbar from './components/common/Navbar.jsx'
-import ChatRoomsPage from './pages/ChatRoomsPage.jsx'
-import './App.css'
+import { Navigate, Route, Routes } from "react-router-dom";
+import Navbar from "./components/common/Navbar.jsx";
+import ChatRoomsPage from "./pages/ChatRoomsPage.jsx";
+import "./App.css";
 
 function PlaceholderPage({ title, description }) {
   return (
@@ -9,7 +9,7 @@ function PlaceholderPage({ title, description }) {
       <h1>{title}</h1>
       <p>{description}</p>
     </div>
-  )
+  );
 }
 
 function PageLayout({ children }) {
@@ -18,7 +18,7 @@ function PageLayout({ children }) {
       <Navbar />
       <main className="app-main">{children}</main>
     </div>
-  )
+  );
 }
 
 function App() {
@@ -67,7 +67,7 @@ function App() {
         }
       />
     </Routes>
-  )
+  );
 }
 
-export default App
+export default App;

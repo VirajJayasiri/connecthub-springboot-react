@@ -1,4 +1,4 @@
-import { Hash } from 'lucide-react'
+import { Hash } from "lucide-react";
 
 function EmptyState() {
   return (
@@ -7,7 +7,7 @@ function EmptyState() {
       <h2>Welcome to Chat Rooms</h2>
       <p>Select a room to start chatting or create a new one</p>
     </div>
-  )
+  );
 }
 
-export default EmptyState
+export default EmptyState;

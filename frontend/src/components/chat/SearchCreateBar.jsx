@@ -1,4 +1,4 @@
-import { Plus, Search } from 'lucide-react'
+import { Plus, Search } from "lucide-react";
 
 function SearchCreateBar({ searchTerm, onSearchChange, onCreateClick }) {
   return (
@@ -17,7 +17,7 @@ function SearchCreateBar({ searchTerm, onSearchChange, onCreateClick }) {
         Create Room
       </button>
     </div>
-  )
+  );
 }
 
-export default SearchCreateBar
+export default SearchCreateBar;

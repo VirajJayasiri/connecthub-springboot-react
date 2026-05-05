@@ -1,12 +1,12 @@
-import { NavLink } from 'react-router-dom'
-import { FileText, Users, MessageCircle, User, Hash } from 'lucide-react'
+import { NavLink } from "react-router-dom";
+import { FileText, Users, MessageCircle, User, Hash } from "lucide-react";
 
 const navItems = [
-  { to: '/posts', label: 'Posts', icon: FileText },
-  { to: '/friends', label: 'Friends', icon: Users },
-  { to: '/chat-rooms', label: 'Chat Rooms', icon: MessageCircle },
-  { to: '/profile', label: 'Profile', icon: User },
-]
+  { to: "/posts", label: "Posts", icon: FileText },
+  { to: "/friends", label: "Friends", icon: Users },
+  { to: "/chat-rooms", label: "Chat Rooms", icon: MessageCircle },
+  { to: "/profile", label: "Profile", icon: User },
+];
 
 function Navbar() {
   return (
@@ -20,24 +20,24 @@ function Navbar() {
         </div>
         <nav className="nav-links">
           {navItems.map((item) => {
-            const Icon = item.icon
+            const Icon = item.icon;
             return (
               <NavLink
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) =>
-                  `nav-link${isActive ? ' active' : ''}`
+                  `nav-link${isActive ? " active" : ""}`
                 }
               >
                 <Icon size={16} />
                 <span>{item.label}</span>
               </NavLink>
-            )
+            );
           })}
         </nav>
       </div>
     </header>
-  )
+  );
 }
 
-export default Navbar
+export default Navbar;

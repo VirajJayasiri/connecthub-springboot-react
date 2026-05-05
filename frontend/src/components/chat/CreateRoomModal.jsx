@@ -1,34 +1,34 @@
-import { useEffect, useState } from 'react'
-import { X } from 'lucide-react'
+import { useEffect, useState } from "react";
+import { X } from "lucide-react";
 
 const initialForm = {
-  name: '',
-  description: '',
-  type: 'text',
+  name: "",
+  description: "",
+  type: "text",
   isPrivate: false,
-}
+};
 
 function CreateRoomModal({ isOpen, onClose, onCreate }) {
-  const [formValues, setFormValues] = useState(initialForm)
-  const [error, setError] = useState('')
+  const [formValues, setFormValues] = useState(initialForm);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (isOpen) {
-      setFormValues(initialForm)
-      setError('')
+      setFormValues(initialForm);
+      setError("");
     }
-  }, [isOpen])
+  }, [isOpen]);
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   const handleSubmit = (event) => {
-    event.preventDefault()
-    const name = formValues.name.trim()
-    const description = formValues.description.trim()
+    event.preventDefault();
+    const name = formValues.name.trim();
+    const description = formValues.description.trim();
 
     if (!name || !description) {
-      setError('Room name and description are required.')
-      return
+      setError("Room name and description are required.");
+      return;
     }
 
     onCreate({
@@ -36,8 +36,8 @@ function CreateRoomModal({ isOpen, onClose, onCreate }) {
       description,
       type: formValues.type,
       isPrivate: formValues.isPrivate,
-    })
-  }
+    });
+  };
 
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true">
@@ -116,7 +116,7 @@ function CreateRoomModal({ isOpen, onClose, onCreate }) {
         </form>
       </div>
     </div>
-  )
+  );
 }
 
-export default CreateRoomModal
+export default CreateRoomModal;

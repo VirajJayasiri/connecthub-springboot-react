@@ -1,10 +1,10 @@
-import { MessageSquare, Mic, Video, Users } from 'lucide-react'
+import { MessageSquare, Mic, Video, Users } from "lucide-react";
 
 const typeConfig = {
-  text: { label: 'Text Chat', icon: MessageSquare },
-  voice: { label: 'Voice Chat', icon: Mic },
-  video: { label: 'Video Chat', icon: Video },
-}
+  text: { label: "Text Chat", icon: MessageSquare },
+  voice: { label: "Voice Chat", icon: Mic },
+  video: { label: "Video Chat", icon: Video },
+};
 
 function RoomDetails({
   room,
@@ -13,9 +13,9 @@ function RoomDetails({
   onMessageTextChange,
   onSendMessage,
 }) {
-  const config = typeConfig[room.type] || typeConfig.text
-  const Icon = config.icon
-  const isSendDisabled = !messageText.trim()
+  const config = typeConfig[room.type] || typeConfig.text;
+  const Icon = config.icon;
+  const isSendDisabled = !messageText.trim();
 
   return (
     <div className="room-details">
@@ -35,7 +35,7 @@ function RoomDetails({
         </div>
       </div>
 
-      {room.type === 'text' ? (
+      {room.type === "text" ? (
         <div className="room-chat">
           <div className="message-list">
             {messages.map((msg) => (
@@ -56,9 +56,9 @@ function RoomDetails({
               value={messageText}
               onChange={(event) => onMessageTextChange(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault()
-                  onSendMessage()
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  onSendMessage();
                 }
               }}
             />
@@ -76,20 +76,24 @@ function RoomDetails({
         <div className="room-preview">
           <div className="preview-card">
             <Icon size={36} />
-            <h3>{room.type === 'voice' ? 'Voice room preview' : 'Video room preview'}</h3>
+            <h3>
+              {room.type === "voice"
+                ? "Voice room preview"
+                : "Video room preview"}
+            </h3>
             <p>
-              {room.type === 'voice'
-                ? 'Join the audio channel to start talking.'
-                : 'Launch video to collaborate face to face.'}
+              {room.type === "voice"
+                ? "Join the audio channel to start talking."
+                : "Launch video to collaborate face to face."}
             </p>
             <button type="button" className="primary-btn">
-              {room.type === 'voice' ? 'Join Voice' : 'Join Video'}
+              {room.type === "voice" ? "Join Voice" : "Join Video"}
             </button>
           </div>
         </div>
       )}
     </div>
-  )
+  );
 }
 
-export default RoomDetails
+export default RoomDetails;
