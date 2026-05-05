@@ -65,7 +65,7 @@ const RegisterPage = () => {
       
       // Simulate successful response
       console.log('Registration successful');
-      // navigate('/login');
+      navigate('/chat');
     } catch (error) {
       console.error('Registration failed:', error);
       setErrors({ form: 'Something went wrong. Please try again.' });

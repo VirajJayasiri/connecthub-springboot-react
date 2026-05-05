@@ -51,7 +51,7 @@ const LoginPage = () => {
       
       // Simulate successful response
       console.log('Login successful');
-      // navigate('/dashboard'); // Not implemented yet
+      navigate('/chat');
     } catch (error) {
       console.error('Login failed:', error);
       setErrors({ form: 'Invalid email or password' });
