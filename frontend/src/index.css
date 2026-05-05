@@ -1,58 +1,66 @@
 @import "tailwindcss";
 
-:root {
-  --background-gradient: linear-gradient(135deg, #000000 0%, #0a0e2a 100%);
-}
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  
+  --color-background: #000000;
+  --color-foreground: #ffffff;
+  --color-muted: #111111;
+  --color-muted-foreground: #a1a1aa;
+  --color-border: #27272a;
 
-@layer base {
-  body {
-    @apply antialiased text-gray-900;
-    background: var(--background-gradient);
-    min-height: 100vh;
-    margin: 0;
-  }
-}
-
-#root {
-  min-height: 100vh;
-}
-
-@keyframes twinkle {
-  0%, 100% {
-    opacity: 0.1;
-    transform: scale(0.8);
-  }
-  50% {
-    opacity: 0.8;
-    transform: scale(1.1);
+  --animate-gradient: gradient 8s linear infinite;
+  
+  @keyframes gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
   }
 }
 
-.animate-twinkle {
-  animation: twinkle linear infinite;
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-@keyframes aurora {
-  0% {
-    transform: translateX(-20%) translateY(-10%) scale(1);
-    opacity: 0;
-  }
-  20% {
-    opacity: 0.15;
-  }
-  50% {
-    transform: translateX(10%) translateY(5%) scale(1.2);
-    opacity: 0.3;
-  }
-  80% {
-    opacity: 0.15;
-  }
-  100% {
-    transform: translateX(30%) translateY(-10%) scale(1);
-    opacity: 0;
-  }
+/* Custom Utilities */
+.glass {
+  background: rgba(25, 25, 25, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.animate-aurora {
-  animation: aurora ease-in-out infinite;
+.text-gradient {
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-image: linear-gradient(to right, #ffffff, #888888);
+}
+
+.text-gradient-dark {
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-image: linear-gradient(to right, #888888, #444444);
+}
+
+.glow-effect {
+  position: relative;
+}
+
+.glow-effect::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 120%;
+  height: 120%;
+  background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0) 70%);
+  z-index: -1;
+  pointer-events: none;
 }
