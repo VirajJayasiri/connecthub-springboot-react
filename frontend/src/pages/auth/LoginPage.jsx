@@ -61,7 +61,9 @@ const LoginPage = () => {
   };
 
   const handleGoogleSignIn = () => {
-    console.log('Continuing with Google...');
+    // TODO: replace with real Google OAuth once backend is ready
+    console.log('Continuing with Google (temp bypass)...');
+    navigate('/chat');
   };
 
   return (
