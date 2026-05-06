@@ -28,24 +28,24 @@ const RoomCard = ({ room, isSelected, onSelect }) => {
   return (
     <button
       onClick={() => onSelect(room)}
-      className={`w-full text-left p-4 rounded-xl border transition-all duration-300 mb-2
+      className={`w-full text-left p-4 rounded-xl transition-all duration-300 mb-2
         ${isSelected
-          ? 'border-gray-900 dark:border-neutral-600 bg-gray-50 dark:bg-neutral-900 shadow-sm'
-          : 'border-gray-200 dark:border-neutral-800 bg-white dark:bg-black hover:border-gray-300 dark:hover:border-neutral-700 hover:shadow-sm'}`}
+          ? 'border border-gray-200 dark:border-neutral-800 border-l-[5px] border-l-black dark:border-l-white bg-white dark:bg-neutral-900 shadow-sm'
+          : 'border border-gray-200 dark:border-neutral-800 bg-white dark:bg-black hover:border-gray-300 dark:hover:border-neutral-700 hover:shadow-sm'}`}
     >
       <div className="flex items-center justify-between mb-2">
-        <span className="flex items-center gap-1.5 font-semibold text-gray-900 dark:text-gray-100 text-sm">
-          <Icon size={14} className="text-gray-400 dark:text-gray-500" />
+        <span className="flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100 text-base">
+          <Icon size={18} className="text-gray-800 dark:text-gray-200" strokeWidth={2} />
           {room.name}
         </span>
-        <span className="text-[11px] px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 whitespace-nowrap ml-2">
+        <span className="text-[11px] px-2.5 py-0.5 rounded-md border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 whitespace-nowrap ml-2">
           {TYPE_LABEL[room.type]}
         </span>
       </div>
-      <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-3 line-clamp-2">{room.description}</p>
-      <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500">
-        <span className="flex items-center gap-1"><Users size={12} /> {room.members} members</span>
-        <span className="text-blue-400 dark:text-blue-500">{room.lastActive}</span>
+      <p className="text-[13px] text-gray-600 dark:text-gray-400 leading-relaxed mb-4 line-clamp-2">{room.description}</p>
+      <div className="flex items-center justify-between text-[12px] text-gray-500 dark:text-gray-400">
+        <span className="flex items-center gap-1.5"><Users size={14} /> {room.members} members</span>
+        <span>{room.lastActive}</span>
       </div>
     </button>
   );
