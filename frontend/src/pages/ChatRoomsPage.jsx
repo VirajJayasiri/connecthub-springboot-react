@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import AppNavbar from '../components/common/AppNavbar';
-import { Search, Plus, MessageSquare, Mic, Video, Hash, Users, ArrowLeft } from 'lucide-react';
+import { Search, Plus, MessageSquare, Mic, Video, Hash, Users, ArrowLeft, Send } from 'lucide-react';
 
 /* ─── Mock data ─────────────────────────────────────────────── */
 const ROOMS = [
@@ -126,6 +126,16 @@ const RoomPanel = ({ room, onBack }) => {
             placeholder={room.type === 'text' ? `Message #${room.name}...` : 'Voice/Video rooms require backend connection'}
             disabled={room.type !== 'text'}
           />
+          {room.type === 'text' && (
+            <button
+              onClick={send}
+              disabled={!text.trim()}
+              className="p-1.5 bg-gray-900 text-white hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50 disabled:hover:bg-gray-900"
+              title="Send message"
+            >
+              <Send size={18} />
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -208,13 +218,21 @@ export default function ChatRoomsPage() {
           </div>
 
           {/* Filter pills */}
-          <div className="flex flex-wrap gap-2 mb-3">
+          <div className="flex items-center bg-gray-100/80 p-1 rounded-xl mb-4 w-full">
             {FILTERS.map(({ key, label, Icon }) => (
               <button key={key} onClick={() => setFilter(key)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all
-                  ${filter === key ? 'bg-gray-900 text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-100'}`}>
-                {Icon && <Icon size={13} />}
-                {label}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-1 sm:px-2 rounded-lg text-[13px] font-medium transition-all duration-200 ease-out group
+                  ${filter === key 
+                    ? 'bg-white text-gray-900 shadow-sm ring-1 ring-black/5 scale-[1.02]' 
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/60'}`}
+              >
+                {Icon && (
+                  <Icon 
+                    size={14} 
+                    className={`transition-colors duration-200 ${filter === key ? 'text-indigo-500' : 'text-gray-400 group-hover:text-gray-500'}`} 
+                  />
+                )}
+                <span className="truncate">{label}</span>
               </button>
             ))}
           </div>
