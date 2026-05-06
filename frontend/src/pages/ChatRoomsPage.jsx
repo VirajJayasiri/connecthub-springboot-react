@@ -109,8 +109,22 @@ const RoomPanel = ({ room, onBack }) => {
             </div>
           </div>
         )) : (
-          <div className="flex items-center justify-center h-full text-sm text-gray-400">
-            This is a {room.type} room — connect via backend to start.
+          <div className="flex flex-col items-center justify-center h-full text-center px-4">
+            <div className="w-20 h-20 rounded-full mb-6 flex items-center justify-center shadow-inner bg-gray-100 text-gray-800">
+              <Icon size={40} strokeWidth={1.5} />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              {room.type === 'voice' ? 'Voice Channel' : 'Video Channel'}
+            </h3>
+            <p className="text-sm text-gray-500 max-w-sm mb-8 leading-relaxed">
+              {room.type === 'voice' 
+                ? 'Join this voice channel to talk with other members in real-time. Make sure your microphone is connected.' 
+                : 'Join this video channel to collaborate face-to-face. Make sure your camera and microphone are ready.'}
+            </p>
+            <button className="flex items-center gap-2.5 px-6 py-3 rounded-xl font-semibold text-white transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm bg-gray-900 hover:bg-gray-800 ring-gray-900/20 hover:ring-4">
+              <Icon size={18} strokeWidth={2} />
+              Join {room.type === 'voice' ? 'Voice' : 'Video'} Room
+            </button>
           </div>
         )}
       </div>
@@ -123,7 +137,7 @@ const RoomPanel = ({ room, onBack }) => {
             onChange={e => setText(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && send()}
             className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none"
-            placeholder={room.type === 'text' ? `Message #${room.name}...` : 'Voice/Video rooms require backend connection'}
+            placeholder={room.type === 'text' ? `Message #${room.name}...` : 'Text messaging is unavailable in this room'}
             disabled={room.type !== 'text'}
           />
           {room.type === 'text' && (
