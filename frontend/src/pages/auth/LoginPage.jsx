@@ -51,7 +51,7 @@ const LoginPage = () => {
       
       // Simulate successful response
       console.log('Login successful');
-      // navigate('/dashboard'); // Not implemented yet
+      navigate('/chat');
     } catch (error) {
       console.error('Login failed:', error);
       setErrors({ form: 'Invalid email or password' });
@@ -61,7 +61,9 @@ const LoginPage = () => {
   };
 
   const handleGoogleSignIn = () => {
-    console.log('Continuing with Google...');
+    // TODO: replace with real Google OAuth once backend is ready
+    console.log('Continuing with Google (temp bypass)...');
+    navigate('/chat');
   };
 
   return (

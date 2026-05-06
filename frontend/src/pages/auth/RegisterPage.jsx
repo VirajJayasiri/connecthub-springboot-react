@@ -65,7 +65,7 @@ const RegisterPage = () => {
       
       // Simulate successful response
       console.log('Registration successful');
-      // navigate('/login');
+      navigate('/chat');
     } catch (error) {
       console.error('Registration failed:', error);
       setErrors({ form: 'Something went wrong. Please try again.' });
@@ -180,7 +180,11 @@ const RegisterPage = () => {
 
         <button
           type="button"
-          onClick={() => console.log('Continuing with Google...')}
+          onClick={() => {
+            // TODO: replace with real Google OAuth once backend is ready
+            console.log('Continuing with Google (temp bypass)...');
+            navigate('/chat');
+          }}
           className="w-full py-3.5 rounded-xl border border-gray-100 bg-white hover:bg-gray-50 flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
         >
           <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
