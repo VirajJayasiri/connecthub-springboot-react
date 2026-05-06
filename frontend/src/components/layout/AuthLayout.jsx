@@ -13,13 +13,13 @@ const AuthLayout = ({ children, title, subtitle, bottomText }) => {
         </div>
 
         {/* Card */}
-        <div className="w-full bg-white rounded-[32px] p-8 shadow-2xl">
+        <div className="w-full bg-white dark:bg-gray-900 rounded-[32px] p-8 shadow-2xl transition-colors duration-200">
           {children}
         </div>
 
         {/* Bottom Text */}
         {bottomText && (
-          <p className="mt-8 text-gray-500 text-sm text-center px-4">
+          <p className="mt-8 text-gray-500 dark:text-gray-400 text-sm text-center px-4">
             {bottomText}
           </p>
         )}

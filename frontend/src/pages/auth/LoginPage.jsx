@@ -109,9 +109,9 @@ const LoginPage = () => {
               />
               <svg className="absolute w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 pointer-events-none left-1/2 -translate-x-1/2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
             </div>
-            <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">Remember me</span>
+            <span className="text-sm text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">Remember me</span>
           </label>
-          <Link to="/forgot-password" size="sm" className="text-sm text-gray-400 hover:text-black transition-colors">
+          <Link to="/forgot-password" size="sm" className="text-sm text-gray-400 dark:text-gray-500 hover:text-black dark:hover:text-white transition-colors">
             Forgot password?
           </Link>
         </div>
@@ -122,8 +122,8 @@ const LoginPage = () => {
           className={`
             w-full py-3.5 rounded-xl font-bold transition-all duration-200
             ${isFormValid && !isLoading 
-              ? 'bg-black text-white hover:bg-gray-800 active:scale-[0.98]' 
-              : 'bg-gray-100 text-gray-400 cursor-not-allowed'}
+              ? 'bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 active:scale-[0.98]' 
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed'}
           `}
         >
           {isLoading ? (
@@ -136,9 +136,9 @@ const LoginPage = () => {
 
         <div className="relative flex items-center justify-center py-2">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-100"></div>
+            <div className="w-full border-t border-gray-100 dark:border-gray-800"></div>
           </div>
-          <span className="relative px-4 bg-white text-gray-400 text-xs font-medium uppercase tracking-wider">
+          <span className="relative px-4 bg-white dark:bg-gray-900 text-gray-400 dark:text-gray-500 text-xs font-medium uppercase tracking-wider">
             OR
           </span>
         </div>
@@ -146,16 +146,16 @@ const LoginPage = () => {
         <button
           type="button"
           onClick={handleGoogleSignIn}
-          className="w-full py-3.5 rounded-xl border border-gray-100 bg-white hover:bg-gray-50 flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
+          className="w-full py-3.5 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
         >
           <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
-          <span className="font-semibold text-gray-700">Continue with Google</span>
+          <span className="font-semibold text-gray-700 dark:text-gray-200">Continue with Google</span>
         </button>
 
         <div className="mt-2 text-center">
-          <p className="text-gray-500">
+          <p className="text-gray-500 dark:text-gray-400">
             Don't have an account?{' '}
-            <Link to="/register" className="text-black font-bold hover:underline">
+            <Link to="/register" className="text-black dark:text-white font-bold hover:underline">
               Sign up
             </Link>
           </p>

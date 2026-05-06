@@ -28,34 +28,34 @@ const RoomCard = ({ room, isSelected, onSelect }) => {
   return (
     <button
       onClick={() => onSelect(room)}
-      className={`w-full text-left p-4 rounded-xl border transition-all duration-150 mb-2
+      className={`w-full text-left p-4 rounded-xl border transition-all duration-300 mb-2
         ${isSelected
-          ? 'border-gray-900 bg-gray-50 shadow-sm'
-          : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'}`}
+          ? 'border-gray-900 dark:border-neutral-600 bg-gray-50 dark:bg-neutral-900 shadow-sm'
+          : 'border-gray-200 dark:border-neutral-800 bg-white dark:bg-black hover:border-gray-300 dark:hover:border-neutral-700 hover:shadow-sm'}`}
     >
       <div className="flex items-center justify-between mb-2">
-        <span className="flex items-center gap-1.5 font-semibold text-gray-900 text-sm">
-          <Icon size={14} className="text-gray-400" />
+        <span className="flex items-center gap-1.5 font-semibold text-gray-900 dark:text-gray-100 text-sm">
+          <Icon size={14} className="text-gray-400 dark:text-gray-500" />
           {room.name}
         </span>
-        <span className="text-[11px] px-2 py-0.5 rounded-full border border-gray-200 text-gray-500 whitespace-nowrap ml-2">
+        <span className="text-[11px] px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 whitespace-nowrap ml-2">
           {TYPE_LABEL[room.type]}
         </span>
       </div>
-      <p className="text-xs text-gray-500 leading-relaxed mb-3 line-clamp-2">{room.description}</p>
-      <div className="flex items-center justify-between text-xs text-gray-400">
+      <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-3 line-clamp-2">{room.description}</p>
+      <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500">
         <span className="flex items-center gap-1"><Users size={12} /> {room.members} members</span>
-        <span className="text-blue-400">{room.lastActive}</span>
+        <span className="text-blue-400 dark:text-blue-500">{room.lastActive}</span>
       </div>
     </button>
   );
 };
 
 const EmptyState = () => (
-  <div className="flex flex-col items-center justify-center h-full text-center px-8">
-    <Hash size={56} className="text-gray-200 mb-4" strokeWidth={1.5} />
-    <h2 className="text-xl font-semibold text-gray-700 mb-1">Welcome to Chat Rooms</h2>
-    <p className="text-sm text-gray-400">
+  <div className="flex flex-col items-center justify-center h-full text-center px-8 bg-white dark:bg-[#050505] transition-colors duration-500">
+    <Hash size={56} className="text-gray-200 dark:text-gray-700 mb-4" strokeWidth={1.5} />
+    <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-1">Welcome to Chat Rooms</h2>
+    <p className="text-sm text-gray-400 dark:text-gray-500">
       Select a room to start chatting or{' '}
       <span className="text-blue-500 cursor-pointer hover:underline">create a new one</span>
     </p>
@@ -78,50 +78,50 @@ const RoomPanel = ({ room, onBack }) => {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-4 md:px-6 py-3 md:py-4 border-b border-gray-200">
+    <div className="flex flex-col h-full bg-white dark:bg-[#050505] transition-colors duration-500">
+      <div className="px-4 md:px-6 py-3 md:py-4 border-b border-gray-200 dark:border-neutral-800 bg-white dark:bg-black transition-colors duration-500">
         <div className="flex items-center gap-2">
           {onBack && (
-            <button onClick={onBack} className="md:hidden p-1.5 -ml-2 mr-1 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0">
+            <button onClick={onBack} className="md:hidden p-1.5 -ml-2 mr-1 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors flex-shrink-0">
               <ArrowLeft size={18} />
             </button>
           )}
-          <Icon size={16} className="text-gray-400 flex-shrink-0" />
-          <h2 className="font-bold text-gray-900 text-base md:text-lg truncate">{room.name}</h2>
-          <span className="text-xs px-2 py-0.5 rounded-full border border-gray-200 text-gray-500 ml-1 whitespace-nowrap hidden sm:inline-block">{TYPE_LABEL[room.type]}</span>
+          <Icon size={16} className="text-gray-400 dark:text-gray-500 flex-shrink-0" />
+          <h2 className="font-bold text-gray-900 dark:text-gray-100 text-base md:text-lg truncate">{room.name}</h2>
+          <span className="text-xs px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 ml-1 whitespace-nowrap hidden sm:inline-block">{TYPE_LABEL[room.type]}</span>
         </div>
-        <p className="text-sm text-gray-400 mt-1 line-clamp-1">{room.description}</p>
-        <span className="flex items-center gap-1 text-xs text-gray-400 mt-1"><Users size={12} /> {room.members} members</span>
+        <p className="text-sm text-gray-400 dark:text-gray-500 mt-1 line-clamp-1">{room.description}</p>
+        <span className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 mt-1"><Users size={12} /> {room.members} members</span>
       </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 space-y-3">
         {room.type === 'text' ? messages.map(m => (
           <div key={m.id} className={`flex gap-3 ${m.sender === 'You' ? 'flex-row-reverse' : ''}`}>
-            <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0 flex items-center justify-center text-xs font-bold text-gray-500">
+            <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex-shrink-0 flex items-center justify-center text-xs font-bold text-gray-500 dark:text-gray-400">
               {m.sender[0]}
             </div>
             <div className={`max-w-xs ${m.sender === 'You' ? 'items-end' : ''} flex flex-col`}>
-              <span className="text-xs text-gray-400 mb-1">{m.sender} · {m.time}</span>
-              <div className={`px-3 py-2 rounded-xl text-sm ${m.sender === 'You' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-800'}`}>
+              <span className="text-xs text-gray-400 dark:text-gray-500 mb-1">{m.sender} · {m.time}</span>
+              <div className={`px-3 py-2 rounded-xl text-sm ${m.sender === 'You' ? 'bg-gray-900 dark:bg-white text-white dark:text-black' : 'bg-gray-100 dark:bg-neutral-900 text-gray-800 dark:text-gray-200'}`}>
                 {m.text}
               </div>
             </div>
           </div>
         )) : (
           <div className="flex flex-col items-center justify-center h-full text-center px-4">
-            <div className="w-20 h-20 rounded-full mb-6 flex items-center justify-center shadow-inner bg-gray-100 text-gray-800">
+            <div className="w-20 h-20 rounded-full mb-6 flex items-center justify-center shadow-inner bg-gray-100 dark:bg-neutral-900 text-gray-800 dark:text-gray-200 transition-colors duration-500">
               <Icon size={40} strokeWidth={1.5} />
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
               {room.type === 'voice' ? 'Voice Channel' : 'Video Channel'}
             </h3>
-            <p className="text-sm text-gray-500 max-w-sm mb-8 leading-relaxed">
+            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mb-8 leading-relaxed">
               {room.type === 'voice' 
                 ? 'Join this voice channel to talk with other members in real-time. Make sure your microphone is connected.' 
                 : 'Join this video channel to collaborate face-to-face. Make sure your camera and microphone are ready.'}
             </p>
-            <button className="flex items-center gap-2.5 px-6 py-3 rounded-xl font-semibold text-white transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm bg-gray-900 hover:bg-gray-800 ring-gray-900/20 hover:ring-4">
+            <button className="flex items-center gap-2.5 px-6 py-3 rounded-xl font-semibold text-white transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm bg-gray-900 dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 ring-gray-900/20 hover:ring-4">
               <Icon size={18} strokeWidth={2} />
               Join {room.type === 'voice' ? 'Voice' : 'Video'} Room
             </button>
@@ -130,13 +130,13 @@ const RoomPanel = ({ room, onBack }) => {
       </div>
 
       {/* Input */}
-      <div className="px-3 md:px-4 py-3 border-t border-gray-200">
-        <div className="flex items-center gap-2 bg-gray-100 rounded-xl px-3 md:px-4 py-2">
+      <div className="px-3 md:px-4 py-3 border-t border-gray-200 dark:border-neutral-800 bg-white dark:bg-black transition-colors duration-500">
+        <div className="flex items-center gap-2 bg-gray-100 dark:bg-neutral-900 rounded-xl px-3 md:px-4 py-2">
           <input
             value={text}
             onChange={e => setText(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && send()}
-            className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none"
+            className="flex-1 bg-transparent text-sm text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 outline-none"
             placeholder={room.type === 'text' ? `Message #${room.name}...` : 'Text messaging is unavailable in this room'}
             disabled={room.type !== 'text'}
           />
@@ -144,7 +144,7 @@ const RoomPanel = ({ room, onBack }) => {
             <button
               onClick={send}
               disabled={!text.trim()}
-              className="p-1.5 bg-gray-900 text-white hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50 disabled:hover:bg-gray-900"
+              className="p-1.5 bg-gray-900 dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:hover:bg-gray-900 dark:disabled:hover:bg-white"
               title="Send message"
             >
               <Send size={18} />
@@ -160,25 +160,25 @@ const CreateModal = ({ onClose }) => {
   const [name, setName] = useState('');
   const [type, setType] = useState('text');
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-        <h2 className="text-lg font-bold text-gray-900 mb-4">Create a Room</h2>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Room Name</label>
+    <div className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-black rounded-2xl shadow-xl w-full max-w-md p-6 border border-transparent dark:border-neutral-800 transition-colors duration-500">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Create a Room</h2>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Room Name</label>
         <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Study Together"
-          className="w-full px-4 py-2 rounded-xl border border-gray-200 text-sm outline-none focus:border-gray-900 mb-4" />
-        <label className="block text-sm font-medium text-gray-700 mb-2">Room Type</label>
+          className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-neutral-800 bg-transparent dark:bg-neutral-900 text-gray-900 dark:text-gray-100 text-sm outline-none focus:border-gray-900 dark:focus:border-gray-500 mb-4 placeholder-gray-400 dark:placeholder-gray-500 transition-colors" />
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Room Type</label>
         <div className="flex gap-2 mb-6">
           {['text','voice','video'].map(t => (
             <button key={t} onClick={() => setType(t)}
-              className={`flex-1 py-2 rounded-xl text-sm font-medium border transition-all
-                ${type === t ? 'bg-gray-900 text-white border-gray-900' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+              className={`flex-1 py-2 rounded-xl text-sm font-medium border transition-all duration-300
+                ${type === t ? 'bg-gray-900 dark:bg-white text-white dark:text-black border-gray-900 dark:border-white' : 'border-gray-200 dark:border-neutral-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-900'}`}>
               {t.charAt(0).toUpperCase() + t.slice(1)}
             </button>
           ))}
         </div>
         <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50">Cancel</button>
-          <button onClick={onClose} className="flex-1 py-2 rounded-xl bg-gray-900 text-white text-sm font-medium hover:bg-gray-700">Create</button>
+          <button onClick={onClose} className="flex-1 py-2 rounded-xl border border-gray-200 dark:border-neutral-800 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-900 transition-colors">Cancel</button>
+          <button onClick={onClose} className="flex-1 py-2 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-black text-sm font-medium hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors">Create</button>
         </div>
       </div>
     </div>
@@ -205,17 +205,17 @@ export default function ChatRoomsPage() {
       <AppNavbar />
 
       {/* Search + Create bar */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-white dark:bg-black border-b border-gray-200 dark:border-neutral-800 transition-colors duration-500">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
-          <div className="flex items-center gap-2 max-w-sm w-full bg-gray-100 rounded-xl px-3 py-2">
-            <Search size={15} className="text-gray-400 flex-shrink-0" />
+          <div className="flex items-center gap-2 max-w-sm w-full bg-gray-100 dark:bg-neutral-900 rounded-xl px-3 py-2">
+            <Search size={15} className="text-gray-400 dark:text-gray-500 flex-shrink-0" />
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search chat rooms..."
-              className="bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none w-full min-w-0" />
+              className="bg-transparent text-sm text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 outline-none w-full min-w-0" />
           </div>
           <div className="flex-1" />
           <button onClick={() => setShowModal(true)}
-            className="flex items-center gap-1.5 px-3 md:px-4 py-2 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 transition-colors whitespace-nowrap flex-shrink-0">
+            className="flex items-center gap-1.5 px-3 md:px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-black text-sm font-semibold rounded-xl hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors whitespace-nowrap flex-shrink-0">
             <Plus size={15} /> <span className="hidden sm:inline">Create Room</span>
           </button>
         </div>
@@ -227,23 +227,23 @@ export default function ChatRoomsPage() {
         {/* LEFT sidebar */}
         <aside className={`w-full md:w-72 flex-shrink-0 flex-col ${selected ? 'hidden md:flex' : 'flex'}`}>
           <div className="mb-3">
-            <h2 className="font-bold text-gray-900 text-base">Chat Rooms</h2>
-            <p className="text-xs text-gray-400">{visible.length} rooms available</p>
+            <h2 className="font-bold text-gray-900 dark:text-gray-100 text-base">Chat Rooms</h2>
+            <p className="text-xs text-gray-400 dark:text-gray-500">{visible.length} rooms available</p>
           </div>
 
           {/* Filter pills */}
-          <div className="flex items-center bg-gray-100/80 p-1 rounded-xl mb-4 w-full">
+          <div className="flex items-center bg-gray-100/80 dark:bg-neutral-900 p-1 rounded-xl mb-4 w-full border border-transparent dark:border-neutral-800/50">
             {FILTERS.map(({ key, label, Icon }) => (
               <button key={key} onClick={() => setFilter(key)}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-1 sm:px-2 rounded-lg text-[13px] font-medium transition-all duration-200 ease-out group
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-1 sm:px-2 rounded-lg text-[13px] font-medium transition-all duration-300 ease-out group
                   ${filter === key 
-                    ? 'bg-white text-gray-900 shadow-sm ring-1 ring-black/5 scale-[1.02]' 
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/60'}`}
+                    ? 'bg-white dark:bg-gradient-to-b dark:from-neutral-800 dark:to-neutral-900 text-gray-900 dark:text-white shadow-[0_2px_10px_rgba(0,0,0,0.05)] dark:shadow-[0_2px_10px_rgba(255,255,255,0.02)] ring-1 ring-black/5 dark:ring-white/10 scale-[1.02]' 
+                    : 'text-gray-500 dark:text-neutral-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-200/60 dark:hover:bg-neutral-800/50'}`}
               >
                 {Icon && (
                   <Icon 
                     size={14} 
-                    className={`transition-colors duration-200 ${filter === key ? 'text-indigo-500' : 'text-gray-400 group-hover:text-gray-500'}`} 
+                    className={`transition-colors duration-200 ${filter === key ? 'text-indigo-500 dark:text-indigo-400' : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-500 dark:group-hover:text-gray-400'}`} 
                   />
                 )}
                 <span className="truncate">{label}</span>
@@ -254,7 +254,7 @@ export default function ChatRoomsPage() {
           {/* Room list */}
           <div className="flex-1 overflow-y-auto pr-1">
             {visible.length === 0
-              ? <p className="text-sm text-gray-400 text-center mt-8">No rooms found.</p>
+              ? <p className="text-sm text-gray-400 dark:text-gray-500 text-center mt-8">No rooms found.</p>
               : visible.map(r => (
                   <RoomCard key={r.id} room={r} isSelected={selected?.id === r.id} onSelect={setSelected} />
                 ))}
@@ -262,10 +262,10 @@ export default function ChatRoomsPage() {
         </aside>
 
         {/* Divider */}
-        <div className="hidden md:block w-px bg-gray-200 flex-shrink-0" />
+        <div className="hidden md:block w-px bg-gray-200 dark:bg-neutral-800 flex-shrink-0 transition-colors duration-500" />
 
         {/* RIGHT panel */}
-        <main className={`flex-1 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex-col ${!selected ? 'hidden md:flex' : 'flex'}`} style={{ minHeight: '500px' }}>
+        <main className={`flex-1 bg-white dark:bg-black rounded-2xl border border-gray-200 dark:border-neutral-800 shadow-sm overflow-hidden flex-col transition-colors duration-500 ${!selected ? 'hidden md:flex' : 'flex'}`} style={{ minHeight: '500px' }}>
           {selected ? <RoomPanel key={selected.id} room={selected} onBack={() => setSelected(null)} /> : <EmptyState />}
         </main>
       </div>
