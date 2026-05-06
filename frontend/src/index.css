@@ -64,3 +64,26 @@ body {
   z-index: -1;
   pointer-events: none;
 }
+
+/* ── App pages (post-login) ── */
+.app-page {
+  background-color: #f9fafb !important; /* gray-50 */
+  color: #111827;                        /* gray-900 */
+  min-height: 100vh;
+}
+
+/* ── Star / Aurora animations (auth pages) ── */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.1; transform: scale(0.8); }
+  50%       { opacity: 0.8; transform: scale(1.1); }
+}
+.animate-twinkle { animation: twinkle linear infinite; }
+
+@keyframes aurora {
+  0%   { transform: translateX(-20%) translateY(-10%) scale(1);   opacity: 0; }
+  20%  { opacity: 0.15; }
+  50%  { transform: translateX(10%)  translateY(5%)  scale(1.2); opacity: 0.3; }
+  80%  { opacity: 0.15; }
+  100% { transform: translateX(30%)  translateY(-10%) scale(1);   opacity: 0; }
+}
+.animate-aurora { animation: aurora ease-in-out infinite; }
