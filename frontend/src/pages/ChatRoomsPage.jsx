@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import AppNavbar from '../components/common/AppNavbar';
-import { Search, Plus, MessageSquare, Mic, Video, Hash, Users } from 'lucide-react';
+import { Search, Plus, MessageSquare, Mic, Video, Hash, Users, ArrowLeft } from 'lucide-react';
 
 /* ─── Mock data ─────────────────────────────────────────────── */
 const ROOMS = [
@@ -62,7 +62,7 @@ const EmptyState = () => (
   </div>
 );
 
-const RoomPanel = ({ room }) => {
+const RoomPanel = ({ room, onBack }) => {
   const Icon = TYPE_ICON[room.type];
   const [messages, setMessages] = useState([
     { id: 1, sender: 'Avery',  text: 'Welcome everyone! Share your latest tips.', time: '9:12 AM' },
@@ -79,18 +79,23 @@ const RoomPanel = ({ room }) => {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-6 py-4 border-b border-gray-200">
+      <div className="px-4 md:px-6 py-3 md:py-4 border-b border-gray-200">
         <div className="flex items-center gap-2">
-          <Icon size={16} className="text-gray-400" />
-          <h2 className="font-bold text-gray-900 text-lg">{room.name}</h2>
-          <span className="text-xs px-2 py-0.5 rounded-full border border-gray-200 text-gray-500 ml-1">{TYPE_LABEL[room.type]}</span>
+          {onBack && (
+            <button onClick={onBack} className="md:hidden p-1.5 -ml-2 mr-1 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0">
+              <ArrowLeft size={18} />
+            </button>
+          )}
+          <Icon size={16} className="text-gray-400 flex-shrink-0" />
+          <h2 className="font-bold text-gray-900 text-base md:text-lg truncate">{room.name}</h2>
+          <span className="text-xs px-2 py-0.5 rounded-full border border-gray-200 text-gray-500 ml-1 whitespace-nowrap hidden sm:inline-block">{TYPE_LABEL[room.type]}</span>
         </div>
-        <p className="text-sm text-gray-400 mt-1">{room.description}</p>
+        <p className="text-sm text-gray-400 mt-1 line-clamp-1">{room.description}</p>
         <span className="flex items-center gap-1 text-xs text-gray-400 mt-1"><Users size={12} /> {room.members} members</span>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 space-y-3">
         {room.type === 'text' ? messages.map(m => (
           <div key={m.id} className={`flex gap-3 ${m.sender === 'You' ? 'flex-row-reverse' : ''}`}>
             <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0 flex items-center justify-center text-xs font-bold text-gray-500">
@@ -111,8 +116,8 @@ const RoomPanel = ({ room }) => {
       </div>
 
       {/* Input */}
-      <div className="px-4 py-3 border-t border-gray-200">
-        <div className="flex items-center gap-2 bg-gray-100 rounded-xl px-4 py-2">
+      <div className="px-3 md:px-4 py-3 border-t border-gray-200">
+        <div className="flex items-center gap-2 bg-gray-100 rounded-xl px-3 md:px-4 py-2">
           <input
             value={text}
             onChange={e => setText(e.target.value)}
@@ -182,21 +187,21 @@ export default function ChatRoomsPage() {
             <Search size={15} className="text-gray-400 flex-shrink-0" />
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search chat rooms..."
-              className="bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none w-full" />
+              className="bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none w-full min-w-0" />
           </div>
           <div className="flex-1" />
           <button onClick={() => setShowModal(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 transition-colors">
-            <Plus size={15} /> Create Room
+            className="flex items-center gap-1.5 px-3 md:px-4 py-2 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 transition-colors whitespace-nowrap flex-shrink-0">
+            <Plus size={15} /> <span className="hidden sm:inline">Create Room</span>
           </button>
         </div>
       </div>
 
       {/* Two-column body */}
-      <div className="flex-1 flex max-w-6xl w-full mx-auto px-4 py-4 gap-4" style={{ minHeight: 0 }}>
+      <div className="flex-1 flex flex-col md:flex-row max-w-6xl w-full mx-auto px-4 py-4 gap-4" style={{ minHeight: 0 }}>
 
         {/* LEFT sidebar */}
-        <aside className="w-72 flex-shrink-0 flex flex-col">
+        <aside className={`w-full md:w-72 flex-shrink-0 flex-col ${selected ? 'hidden md:flex' : 'flex'}`}>
           <div className="mb-3">
             <h2 className="font-bold text-gray-900 text-base">Chat Rooms</h2>
             <p className="text-xs text-gray-400">{visible.length} rooms available</p>
@@ -225,11 +230,11 @@ export default function ChatRoomsPage() {
         </aside>
 
         {/* Divider */}
-        <div className="w-px bg-gray-200 flex-shrink-0" />
+        <div className="hidden md:block w-px bg-gray-200 flex-shrink-0" />
 
         {/* RIGHT panel */}
-        <main className="flex-1 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden" style={{ minHeight: '500px' }}>
-          {selected ? <RoomPanel key={selected.id} room={selected} /> : <EmptyState />}
+        <main className={`flex-1 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex-col ${!selected ? 'hidden md:flex' : 'flex'}`} style={{ minHeight: '500px' }}>
+          {selected ? <RoomPanel key={selected.id} room={selected} onBack={() => setSelected(null)} /> : <EmptyState />}
         </main>
       </div>
 

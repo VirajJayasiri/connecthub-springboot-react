@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { Home, Users, Hash, User } from "lucide-react";
+import { Home, Users, Hash, User, Menu, X } from "lucide-react";
 import blackLogo from "../../assets/images/black_logo.png";
 
 const navItems = [
@@ -12,10 +12,11 @@ const navItems = [
 
 const AppNavbar = () => {
   const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
-      <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+      <div className="max-w-6xl mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
         {/* Logo */}
         <button
           onClick={() => navigate("/chat")}
@@ -24,15 +25,15 @@ const AppNavbar = () => {
           <img
             src={blackLogo}
             alt="ConnectHub"
-            className="w-12 h-12 object-contain"
+            className="w-10 h-10 md:w-12 md:h-12 object-contain"
           />
-          <span className="text-lg font-bold text-gray-900 tracking-wide">
+          <span className="text-base md:text-lg font-bold text-gray-900 tracking-wide">
             ConnectHub
           </span>
         </button>
 
-        {/* Nav links */}
-        <nav className="flex items-center gap-1">
+        {/* Desktop Nav links */}
+        <nav className="hidden md:flex items-center gap-1">
           {navItems.map(({ label, icon: Icon, to }) => (
             <NavLink
               key={to}
@@ -51,7 +52,41 @@ const AppNavbar = () => {
             </NavLink>
           ))}
         </nav>
+
+        {/* Mobile menu button */}
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="md:hidden p-2 -mr-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors focus:outline-none"
+        >
+          {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
       </div>
+
+      {/* Mobile Nav Menu */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden border-t border-gray-200 bg-white absolute w-full shadow-lg">
+          <nav className="flex flex-col px-4 py-3 gap-2">
+            {navItems.map(({ label, icon: Icon, to }) => (
+              <NavLink
+                key={to}
+                to={to}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-150
+                   ${
+                     isActive
+                       ? "bg-gray-900 text-white shadow-sm"
+                       : "text-gray-500 hover:text-gray-900 hover:bg-gray-50 border border-transparent hover:border-gray-200"
+                   }`
+                }
+              >
+                <Icon size={18} />
+                {label}
+              </NavLink>
+            ))}
+          </nav>
+        </div>
+      )}
     </header>
   );
 };
