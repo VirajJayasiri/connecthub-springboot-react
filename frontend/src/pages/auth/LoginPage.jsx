@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Mail, Lock } from "lucide-react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Mail, Lock, CheckCircle } from "lucide-react";
 import axios from "axios";
 import AuthLayout from "../../components/layout/AuthLayout";
 import Input from "../../components/common/Input";
 
+const API_BASE = "http://localhost:8080";
+
 const LoginPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -15,11 +18,29 @@ const LoginPage = () => {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [isFormValid, setIsFormValid] = useState(false);
+  const [successMessage, setSuccessMessage] = useState(
+    location.state?.successMessage || "",
+  );
+
+  // Redirect if already logged in
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      navigate("/profile", { replace: true });
+    }
+  }, [navigate]);
+
+  // Clear success message from route state so it doesn't persist on refresh
+  useEffect(() => {
+    if (location.state?.successMessage) {
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   // Simple validation
   useEffect(() => {
     const { email, password } = formData;
-    const isValid = email.includes("@") && password.length >= 6;
+    const isValid = email.trim().length > 0 && password.length >= 6;
     setIsFormValid(isValid);
   }, [formData]);
 
@@ -30,9 +51,13 @@ const LoginPage = () => {
       [name]: type === "checkbox" ? checked : value,
     }));
 
-    // Clear error when typing
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
+    // Clear errors when typing
+    if (errors[name] || errors.form) {
+      setErrors((prev) => ({ ...prev, [name]: "", form: "" }));
+    }
+    // Clear success message when user starts typing
+    if (successMessage) {
+      setSuccessMessage("");
     }
   };
 
@@ -41,18 +66,34 @@ const LoginPage = () => {
     if (!isFormValid) return;
 
     setIsLoading(true);
-    console.log("Logging in with:", formData);
+    setErrors({});
+    setSuccessMessage("");
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const response = await axios.post(`${API_BASE}/api/auth/login`, {
+        usernameOrEmail: formData.email.trim(),
+        password: formData.password,
+      });
 
-      // Simulate successful response
-      console.log("Login successful");
-      navigate("/chat");
+      const { token, user, message } = response.data || {};
+
+      if (!token) {
+        setErrors({ form: message || "Login failed. Please try again." });
+        return;
+      }
+
+      // Store token and user data
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+
+      // Navigate to profile page on successful login
+      navigate("/profile", { replace: true });
     } catch (error) {
-      console.error("Login failed:", error);
-      setErrors({ form: "Invalid email or password" });
+      console.error("Login error:", error);
+      const message =
+        error.response?.data?.message ||
+        "Unable to connect to server. Please check backend.";
+      setErrors({ form: message });
     } finally {
       setIsLoading(false);
     }
@@ -61,7 +102,6 @@ const LoginPage = () => {
   const handleGoogleSignIn = () => {
     // TODO: replace with real Google OAuth once backend is ready
     console.log("Continuing with Google (temp bypass)...");
-    navigate("/chat");
   };
 
   return (
@@ -72,11 +112,30 @@ const LoginPage = () => {
       backgroundVariant="solid"
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        {/* Success message from registration */}
+        {successMessage && (
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+            <CheckCircle size={18} className="text-green-500 flex-shrink-0" />
+            <p className="text-sm text-green-700 dark:text-green-400 font-medium">
+              {successMessage}
+            </p>
+          </div>
+        )}
+
+        {/* Form-level error */}
+        {errors.form && (
+          <div className="px-4 py-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+            <p className="text-sm text-red-600 dark:text-red-400 font-medium">
+              {errors.form}
+            </p>
+          </div>
+        )}
+
         <Input
-          label="Email Address"
+          label="Email or Username"
           name="email"
-          type="email"
-          placeholder="you@example.com"
+          type="text"
+          placeholder="you@example.com or username"
           icon={Mail}
           value={formData.email}
           onChange={handleChange}
@@ -125,7 +184,6 @@ const LoginPage = () => {
           </label>
           <Link
             to="/forgot-password"
-            size="sm"
             className="text-sm text-gray-400 dark:text-gray-500 hover:text-black dark:hover:text-white transition-colors"
           >
             Forgot password?
