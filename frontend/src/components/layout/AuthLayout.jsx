@@ -1,10 +1,16 @@
-import React from 'react';
-import CosmicBackground from '../common/CosmicBackground';
+import React from "react";
+import CosmicBackground from "../common/CosmicBackground";
 
-const AuthLayout = ({ children, title, subtitle, bottomText }) => {
+const AuthLayout = ({
+  children,
+  title,
+  subtitle,
+  bottomText,
+  backgroundVariant = "cosmic",
+}) => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 relative">
-      <CosmicBackground />
+      <CosmicBackground variant={backgroundVariant} />
       <div className="w-full max-w-[440px] flex flex-col items-center relative z-10">
         {/* Header */}
         <div className="text-center mb-8">
