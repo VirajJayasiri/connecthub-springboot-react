@@ -8,6 +8,9 @@ import com.connecthub_springboot_react.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 @Service
 public class AuthService {
 
@@ -23,33 +26,42 @@ public class AuthService {
 
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already taken");
+            throw new RuntimeException("Email already exists");
         }
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new RuntimeException("Username already taken");
         }
 
         User user = new User();
+        user.setFullName(request.getFullName());
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
         userRepository.save(user);
 
-        String token = jwtService.generateToken(user.getUsername());
-        return new AuthResponse(token, user.getUsername(), user.getEmail());
+        // Return success message only — do NOT auto-login after signup
+        return new AuthResponse("Account created successfully");
     }
 
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getUsernameOrEmail())
                 .orElseGet(() -> userRepository.findByUsername(request.getUsernameOrEmail())
-                .orElseThrow(() -> new RuntimeException("User not found")));
+                .orElseThrow(() -> new RuntimeException("Invalid email or password")));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Invalid credentials");
+            throw new RuntimeException("Invalid email or password");
         }
 
-        String token = jwtService.generateToken(user.getUsername());
-        return new AuthResponse(token, user.getUsername(), user.getEmail());
+        String token = jwtService.generateToken(user.getEmail());
+
+        Map<String, Object> userMap = new LinkedHashMap<>();
+        userMap.put("_id", user.getId());
+        userMap.put("fullName", user.getFullName());
+        userMap.put("username", user.getUsername());
+        userMap.put("email", user.getEmail());
+        userMap.put("profileImage", user.getProfileImage());
+
+        return new AuthResponse("Login successful", token, userMap);
     }
 }

@@ -1,17 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AppNavbar from '../components/common/AppNavbar';
-import { MapPin, Globe, Calendar, Edit2, X, Camera } from 'lucide-react';
+import { MapPin, Globe, Calendar, Edit2, X, Camera, LogOut, Loader2 } from 'lucide-react';
+import axios from 'axios';
 
-const defaultUser = {
-  name: 'Alex Morgan',
-  email: 'alex.morgan@example.com',
-  avatar: 'https://i.pravatar.cc/150?img=47',
-  bio: 'Web developer and designer passionate about building great user experiences. I love traveling, photography, and coffee.',
-  location: 'San Francisco, CA',
-  website: 'www.alexmorgan.dev',
-  joined: 'January 2024',
-  stats: { posts: 127, friends: 542, chatRooms: 8 },
-};
+const API_BASE = 'http://localhost:8080';
 
 const StatCard = ({ value, label }) => (
   <div className="flex-1 bg-white border border-gray-200 rounded-2xl p-6 text-center shadow-sm">
@@ -23,11 +16,11 @@ const StatCard = ({ value, label }) => (
 /* ─── Edit Profile Modal ─────────────────────────────────────── */
 const EditProfileModal = ({ user, onSave, onClose }) => {
   const [form, setForm] = useState({
-    name:     user.name,
-    email:    user.email,
-    bio:      user.bio,
-    location: user.location,
-    website:  user.website,
+    name:     user.fullName || '',
+    email:    user.email || '',
+    bio:      user.bio || '',
+    location: user.location || '',
+    website:  user.website || '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -38,7 +31,7 @@ const EditProfileModal = ({ user, onSave, onClose }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    // Simulate save delay
+    // Simulate save delay (profile update API can be added later)
     await new Promise(r => setTimeout(r, 800));
     onSave(form);
     setSaving(false);
@@ -65,7 +58,7 @@ const EditProfileModal = ({ user, onSave, onClose }) => {
           <div className="flex items-center gap-4">
             <div className="relative">
               <img
-                src={user.avatar}
+                src={user.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || 'U')}&background=random&size=64`}
                 alt={form.name}
                 className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
               />
@@ -177,15 +170,75 @@ const EditProfileModal = ({ user, onSave, onClose }) => {
 
 /* ─── Profile Page ──────────────────────────────────────────── */
 const ProfilePage = () => {
-  const [user, setUser] = useState(defaultUser);
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  // Fetch the logged-in user's profile from the API
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const token = localStorage.getItem('token');
+
+      if (!token) {
+        navigate('/login', { replace: true });
+        return;
+      }
+
+      try {
+        const response = await axios.get(`${API_BASE}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        setUser(response.data);
+      } catch (err) {
+        // Token is invalid or expired — clear storage and redirect
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate('/login', { replace: true });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [navigate]);
 
   const handleSave = (updates) => {
-    setUser(prev => ({ ...prev, ...updates }));
-    console.log('Profile updated:', updates);
+    setUser(prev => ({
+      ...prev,
+      fullName: updates.name,
+      email: updates.email,
+      bio: updates.bio,
+      location: updates.location,
+      website: updates.website,
+    }));
   };
 
-  const { name, email, avatar, bio, location, website, joined, stats } = user;
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login', { replace: true });
+  };
+
+  if (loading) {
+    return (
+      <div className="app-page">
+        <AppNavbar />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 size={32} className="text-gray-400 animate-spin" />
+            <p className="text-sm text-gray-400">Loading profile...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
+  const avatarUrl = user.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || user.username || 'U')}&background=6366f1&color=fff&size=150`;
 
   return (
     <div className="app-page">
@@ -203,52 +256,68 @@ const ProfilePage = () => {
           <div className="px-6 pb-5">
             <div className="flex items-end justify-between -mt-12">
               <img
-                src={avatar}
-                alt={name}
+                src={avatarUrl}
+                alt={user.fullName || user.username}
                 className="w-24 h-24 rounded-full border-4 border-white shadow-md object-cover"
               />
-              <button
-                onClick={() => setIsEditing(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-900 text-white text-sm font-medium hover:bg-gray-700 active:scale-[0.97] transition-all"
-              >
-                <Edit2 size={14} />
-                Edit Profile
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-900 text-white text-sm font-medium hover:bg-gray-700 active:scale-[0.97] transition-all"
+                >
+                  <Edit2 size={14} />
+                  Edit Profile
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 active:scale-[0.97] transition-all"
+                >
+                  <LogOut size={14} />
+                  Logout
+                </button>
+              </div>
             </div>
 
             <div className="mt-3">
-              <h1 className="text-2xl font-bold text-gray-900">{name}</h1>
-              <p className="text-sm text-gray-400">{email}</p>
+              <h1 className="text-2xl font-bold text-gray-900">{user.fullName || user.username}</h1>
+              <p className="text-sm text-gray-500">@{user.username}</p>
+              <p className="text-sm text-gray-400">{user.email}</p>
             </div>
           </div>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-          <StatCard value={stats.posts}     label="Posts"      />
-          <StatCard value={stats.friends}   label="Friends"    />
-          <StatCard value={stats.chatRooms} label="Chat Rooms" />
+          <StatCard value={user.stats?.posts || 0}     label="Posts"      />
+          <StatCard value={user.stats?.friends || 0}   label="Friends"    />
+          <StatCard value={user.stats?.chatRooms || 0} label="Chat Rooms" />
         </div>
 
         {/* About */}
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
           <h2 className="text-lg font-bold text-gray-900 mb-3">About</h2>
-          <p className="text-gray-600 leading-relaxed mb-5">{bio}</p>
+          <p className="text-gray-600 leading-relaxed mb-5">
+            {user.bio || 'No bio yet. Click "Edit Profile" to add one.'}
+          </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-500">
-            <span className="flex items-center gap-2">
-              <MapPin size={15} className="text-gray-400 flex-shrink-0" />
-              {location}
-            </span>
-            <span className="flex items-center gap-2">
-              <Globe size={15} className="text-gray-400 flex-shrink-0" />
-              <a href={`https://${website}`} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline">
-                {website}
-              </a>
-            </span>
+            {user.location && (
+              <span className="flex items-center gap-2">
+                <MapPin size={15} className="text-gray-400 flex-shrink-0" />
+                {user.location}
+              </span>
+            )}
+            {user.website && (
+              <span className="flex items-center gap-2">
+                <Globe size={15} className="text-gray-400 flex-shrink-0" />
+                <a href={`https://${user.website}`} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline">
+                  {user.website}
+                </a>
+              </span>
+            )}
             <span className="flex items-center gap-2">
               <Calendar size={15} className="text-gray-400 flex-shrink-0" />
-              Joined {joined}
+              Member
             </span>
           </div>
         </div>

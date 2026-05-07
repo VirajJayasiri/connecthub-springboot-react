@@ -5,7 +5,10 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public class RegisterRequest {
-    
+
+    @NotBlank(message = "Full name is required")
+    private String fullName;
+
     @NotBlank(message = "Username is required")
     @Size(min = 3, max = 20, message = "Username must be between 3 and 20 characters")
     private String username;
@@ -19,6 +22,9 @@ public class RegisterRequest {
     private String password;
 
     // Getters and Setters
+    public String getFullName() { return fullName; }
+    public void setFullName(String fullName) { this.fullName = fullName; }
+
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
 

@@ -12,6 +12,9 @@ import ProfilePage   from './pages/ProfilePage';
 import PostsPage     from './pages/PostsPage';
 import FriendsPage   from './pages/FriendsPage';
 
+// Auth guard
+import ProtectedRoute from './components/common/ProtectedRoute';
+
 function App() {
   return (
     <Routes>
@@ -20,11 +23,11 @@ function App() {
       <Route path="/login"    element={<LoginPage />}    />
       <Route path="/register" element={<RegisterPage />} />
 
-      {/* ── App (post-login) ─────────── */}
-      <Route path="/chat"    element={<ChatRoomsPage />} />
-      <Route path="/profile" element={<ProfilePage />}  />
-      <Route path="/posts"   element={<PostsPage />}    />
-      <Route path="/friends" element={<FriendsPage />}  />
+      {/* ── Protected (requires login) ── */}
+      <Route path="/chat"    element={<ProtectedRoute><ChatRoomsPage /></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>}  />
+      <Route path="/posts"   element={<ProtectedRoute><PostsPage /></ProtectedRoute>}    />
+      <Route path="/friends" element={<ProtectedRoute><FriendsPage /></ProtectedRoute>}  />
 
       {/* ── Fallback ─────────────────── */}
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Mail, Lock, User, AtSign } from "lucide-react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Mail, Lock, User, AtSign, CheckCircle } from "lucide-react";
 import axios from "axios";
 import AuthLayout from "../../components/layout/AuthLayout";
 import Input from "../../components/common/Input";
+
+const API_BASE = "http://localhost:8080";
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -18,6 +20,14 @@ const RegisterPage = () => {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [isFormValid, setIsFormValid] = useState(false);
+
+  // Redirect if already logged in
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      navigate("/profile", { replace: true });
+    }
+  }, [navigate]);
 
   // Validation logic
   useEffect(() => {
@@ -57,6 +67,11 @@ const RegisterPage = () => {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
+
+    // Clear form-level error when user types
+    if (errors.form) {
+      setErrors((prev) => ({ ...prev, form: "" }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -64,18 +79,28 @@ const RegisterPage = () => {
     if (!isFormValid) return;
 
     setIsLoading(true);
-    console.log("Registering with:", formData);
+    setErrors({});
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await axios.post(`${API_BASE}/api/auth/register`, {
+        fullName: formData.fullName.trim(),
+        username: formData.username.trim(),
+        email: formData.email.trim(),
+        password: formData.password,
+      });
 
-      // Simulate successful response
-      console.log("Registration successful");
-      navigate("/chat");
+      // Registration successful — navigate to login with success message
+      navigate("/login", {
+        state: {
+          successMessage: "Account created successfully. Please login.",
+        },
+      });
     } catch (error) {
-      console.error("Registration failed:", error);
-      setErrors({ form: "Something went wrong. Please try again." });
+      console.error("Signup error:", error);
+      const message =
+        error.response?.data?.message ||
+        "Unable to connect to server. Please check backend.";
+      setErrors({ form: message });
     } finally {
       setIsLoading(false);
     }
@@ -88,6 +113,15 @@ const RegisterPage = () => {
       backgroundVariant="solid"
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        {/* Form-level error */}
+        {errors.form && (
+          <div className="px-4 py-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+            <p className="text-sm text-red-600 dark:text-red-400 font-medium">
+              {errors.form}
+            </p>
+          </div>
+        )}
+
         <Input
           label="Full Name"
           name="fullName"
@@ -213,7 +247,6 @@ const RegisterPage = () => {
           onClick={() => {
             // TODO: replace with real Google OAuth once backend is ready
             console.log("Continuing with Google (temp bypass)...");
-            navigate("/chat");
           }}
           className="w-full py-3.5 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
         >
