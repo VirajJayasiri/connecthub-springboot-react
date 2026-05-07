@@ -13,11 +13,12 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
-    // Manual Constructor (Replaces @RequiredArgsConstructor)
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
     public AuthResponse register(RegisterRequest request) {
@@ -35,7 +36,8 @@ public class AuthService {
 
         userRepository.save(user);
 
-        return new AuthResponse("dummy-token", user.getUsername(), user.getEmail());
+        String token = jwtService.generateToken(user.getUsername());
+        return new AuthResponse(token, user.getUsername(), user.getEmail());
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -47,6 +49,7 @@ public class AuthService {
             throw new RuntimeException("Invalid credentials");
         }
 
-        return new AuthResponse("dummy-token", user.getUsername(), user.getEmail());
+        String token = jwtService.generateToken(user.getUsername());
+        return new AuthResponse(token, user.getUsername(), user.getEmail());
     }
 }
