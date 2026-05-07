@@ -8,19 +8,19 @@ import FriendEmptyState from "../components/friends/FriendEmptyState";
 
 const SUGGESTED_FRIENDS = [
   {
-    id: 1,
+    id: 101,
     name: "Jessica Lee",
     avatar:
       "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop&crop=face",
   },
   {
-    id: 2,
+    id: 102,
     name: "David Park",
     avatar:
       "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop&crop=face",
   },
   {
-    id: 3,
+    id: 103,
     name: "Lisa Wang",
     avatar:
       "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=face",
@@ -91,6 +91,7 @@ const FriendsPage = () => {
   const [appliedSearch, setAppliedSearch] = useState("");
   const [selectedFriend, setSelectedFriend] = useState(null);
   const [messageInput, setMessageInput] = useState("");
+  const [messageFriends, setMessageFriends] = useState(MESSAGE_FRIENDS);
   const [messagesByFriendId, setMessagesByFriendId] =
     useState(INITIAL_MESSAGES);
 
@@ -104,15 +105,34 @@ const FriendsPage = () => {
   }, [normalizedSearch]);
 
   const filteredMessageFriends = useMemo(() => {
-    if (!normalizedSearch) return MESSAGE_FRIENDS;
-    return MESSAGE_FRIENDS.filter((friend) =>
+    if (!normalizedSearch) return messageFriends;
+    return messageFriends.filter((friend) =>
       friend.name.toLowerCase().includes(normalizedSearch),
     );
-  }, [normalizedSearch]);
+  }, [messageFriends, normalizedSearch]);
 
   const handleAddFriend = (friendId) => {
     if (addedFriendIds.includes(friendId)) return;
+    const friend = SUGGESTED_FRIENDS.find((item) => item.id === friendId);
+    if (!friend) return;
+
+    const newFriend = {
+      ...friend,
+      lastMessage: "Start a conversation",
+      online: true,
+      unread: 0,
+    };
+
+    setMessageFriends((prev) => {
+      if (prev.some((item) => item.id === friendId)) return prev;
+      return [newFriend, ...prev];
+    });
+    setMessagesByFriendId((prev) => ({
+      ...prev,
+      [friendId]: prev[friendId] || [],
+    }));
     setAddedFriendIds((prev) => [...prev, friendId]);
+    setSelectedFriend(newFriend);
   };
 
   const handleSearch = () => {
@@ -138,6 +158,13 @@ const FriendsPage = () => {
         ],
       };
     });
+    setMessageFriends((prev) =>
+      prev.map((friend) =>
+        friend.id === selectedFriend.id
+          ? { ...friend, lastMessage: trimmed, unread: 0 }
+          : friend,
+      ),
+    );
     setMessageInput("");
   };
 
