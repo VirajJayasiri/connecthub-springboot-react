@@ -7,6 +7,7 @@ const FriendChatPanel = ({
   messageInput,
   onMessageChange,
   onSend,
+  scrollAnchorRef,
 }) => {
   return (
     <section className="flex flex-col h-full border border-gray-200 dark:border-neutral-800 rounded-2xl bg-white dark:bg-black">
@@ -29,33 +30,40 @@ const FriendChatPanel = ({
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 md:px-5 py-4 space-y-3">
-        {messages.map((message) => {
-          const isSender = message.sender === "You";
-          return (
-            <div
-              key={message.id}
-              className={`flex ${isSender ? "justify-end" : "justify-start"}`}
-            >
+        {messages.length === 0 ? (
+          <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+            No messages yet. Say hello!
+          </p>
+        ) : (
+          messages.map((message) => {
+            const isSender = message.sender === "You";
+            return (
               <div
-                className={`max-w-[75%] ${isSender ? "items-end" : "items-start"} flex flex-col gap-1`}
+                key={message.id}
+                className={`flex ${isSender ? "justify-end" : "justify-start"}`}
               >
-                <span className="text-[11px] text-gray-400 dark:text-gray-500">
-                  {message.sender} • {message.time}
-                </span>
                 <div
-                  className={`px-4 py-2 rounded-2xl text-sm leading-relaxed
-                    ${
-                      isSender
-                        ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900"
-                        : "bg-gray-100 dark:bg-neutral-900 text-gray-800 dark:text-gray-200"
-                    }`}
+                  className={`max-w-[75%] ${isSender ? "items-end" : "items-start"} flex flex-col gap-1`}
                 >
-                  {message.text}
+                  <span className="text-[11px] text-gray-400 dark:text-gray-500">
+                    {message.sender} • {message.time}
+                  </span>
+                  <div
+                    className={`px-4 py-2 rounded-2xl text-sm leading-relaxed
+                      ${
+                        isSender
+                          ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900"
+                          : "bg-gray-100 dark:bg-neutral-900 text-gray-800 dark:text-gray-200"
+                      }`}
+                  >
+                    {message.text}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
+        <div ref={scrollAnchorRef} />
       </div>
 
       <div className="px-3 md:px-5 py-3 border-t border-gray-200 dark:border-neutral-800">

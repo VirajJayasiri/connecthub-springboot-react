@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Client } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
 import { Home, Users, Hash, User, Menu, X, Sun, Moon } from "lucide-react";
 import blackLogo from "../../assets/images/black_logo.png";
 
@@ -10,13 +12,25 @@ const navItems = [
   { label: "Profile", icon: User, to: "/profile" },
 ];
 
-const AppNavbar = () => {
+const API_BASE = "http://localhost:8080";
+
+const AppNavbar = ({ friendsUnreadCount }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
+  const stompClientRef = useRef(null);
+  const [localUnread, setLocalUnread] = useState(() => {
+    const stored = Number(localStorage.getItem("friendsUnreadCount"));
+    return Number.isFinite(stored) ? stored : 0;
+  });
+
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem("theme") || 
-      (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    return (
+      localStorage.getItem("theme") ||
+      (window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light")
+    );
   });
 
   useEffect(() => {
@@ -27,6 +41,77 @@ const AppNavbar = () => {
     }
     localStorage.setItem("theme", theme);
   }, [theme]);
+
+  useEffect(() => {
+    const handleStorage = (event) => {
+      if (event.key !== "friendsUnreadCount") return;
+      const nextValue = Number(event.newValue);
+      setLocalUnread(Number.isFinite(nextValue) ? nextValue : 0);
+    };
+
+    const handleCustom = () => {
+      const stored = Number(localStorage.getItem("friendsUnreadCount"));
+      setLocalUnread(Number.isFinite(stored) ? stored : 0);
+    };
+
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("friends-unread-update", handleCustom);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("friends-unread-update", handleCustom);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (location.pathname === "/friends") return;
+
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    const storedUser = localStorage.getItem("user");
+    let currentUserId = null;
+    if (storedUser) {
+      try {
+        const parsed = JSON.parse(storedUser);
+        currentUserId = parsed?._id || parsed?.id || null;
+      } catch (err) {
+        currentUserId = null;
+      }
+    }
+
+    if (!currentUserId) return;
+
+    const client = new Client({
+      webSocketFactory: () => new SockJS(`${API_BASE}/ws?token=${token}`),
+      reconnectDelay: 5000,
+      onConnect: () => {
+        client.subscribe("/user/queue/messages", (message) => {
+          const payload = JSON.parse(message.body || "{}");
+          if (!payload || payload.senderId === currentUserId) return;
+          setLocalUnread((prev) => {
+            const nextValue = prev + 1;
+            localStorage.setItem("friendsUnreadCount", String(nextValue));
+            window.dispatchEvent(new Event("friends-unread-update"));
+            return nextValue;
+          });
+        });
+      },
+    });
+
+    stompClientRef.current = client;
+    client.activate();
+
+    return () => {
+      stompClientRef.current = null;
+      client.deactivate();
+    };
+  }, [location.pathname]);
+
+  const displayUnread = useMemo(() => {
+    return Number.isFinite(friendsUnreadCount)
+      ? friendsUnreadCount
+      : localUnread;
+  }, [friendsUnreadCount, localUnread]);
 
   return (
     <header className="sticky top-0 z-50 bg-white dark:bg-black border-b border-gray-200 dark:border-neutral-800 shadow-sm transition-colors duration-500">
@@ -63,7 +148,14 @@ const AppNavbar = () => {
                 }
               >
                 <Icon size={16} />
-                {label}
+                <span className="inline-flex items-center gap-2">
+                  {label}
+                  {label === "Friends" && displayUnread > 0 && (
+                    <span className="min-w-5 h-5 px-1.5 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[11px] font-semibold flex items-center justify-center">
+                      {displayUnread > 99 ? "99+" : displayUnread}
+                    </span>
+                  )}
+                </span>
               </NavLink>
             ))}
           </nav>
@@ -123,14 +215,24 @@ const AppNavbar = () => {
                 }
               >
                 <Icon size={18} />
-                {label}
+                <span className="inline-flex items-center gap-2">
+                  {label}
+                  {label === "Friends" && displayUnread > 0 && (
+                    <span className="min-w-5 h-5 px-1.5 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[11px] font-semibold flex items-center justify-center">
+                      {displayUnread > 99 ? "99+" : displayUnread}
+                    </span>
+                  )}
+                </span>
               </NavLink>
             ))}
-            
+
             {/* Mobile Theme Toggle */}
             <div className="mt-2 pt-3 border-t border-gray-100 dark:border-neutral-800 flex items-center gap-2 bg-gray-50 dark:bg-neutral-900/50 p-1.5 rounded-xl">
               <button
-                onClick={() => { setTheme("light"); setIsMobileMenuOpen(false); }}
+                onClick={() => {
+                  setTheme("light");
+                  setIsMobileMenuOpen(false);
+                }}
                 className={`flex-1 flex justify-center items-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ${
                   theme === "light"
                     ? "bg-white text-gray-900 shadow-sm"
@@ -140,7 +242,10 @@ const AppNavbar = () => {
                 <Sun size={16} /> Light
               </button>
               <button
-                onClick={() => { setTheme("dark"); setIsMobileMenuOpen(false); }}
+                onClick={() => {
+                  setTheme("dark");
+                  setIsMobileMenuOpen(false);
+                }}
                 className={`flex-1 flex justify-center items-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ${
                   theme === "dark"
                     ? "bg-gray-900 text-white shadow-sm dark:bg-neutral-800 ring-1 ring-white/10"
