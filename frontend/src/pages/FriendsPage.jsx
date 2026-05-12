@@ -45,6 +45,9 @@ const FriendsPage = () => {
   const [suggestedError, setSuggestedError] = useState("");
   const [friendsLoading, setFriendsLoading] = useState(true);
   const [friendsError, setFriendsError] = useState("");
+  const [messagesLoadingByFriendId, setMessagesLoadingByFriendId] = useState(
+    {},
+  );
   const [messageError, setMessageError] = useState("");
   const [wsConnected, setWsConnected] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
@@ -247,7 +250,11 @@ const FriendsPage = () => {
     if (!token || !currentUserId) return;
 
     const client = new Client({
-      webSocketFactory: () => new SockJS(`${API_BASE}/ws?token=${token}`),
+      webSocketFactory: () =>
+        new SockJS(`${API_BASE}/ws?token=${encodeURIComponent(token)}`),
+      connectHeaders: {
+        Authorization: `Bearer ${token}`,
+      },
       reconnectDelay: 5000,
       onConnect: () => {
         setWsConnected(true);
@@ -359,6 +366,7 @@ const FriendsPage = () => {
         return;
       }
 
+      setMessagesLoadingByFriendId((prev) => ({ ...prev, [friendId]: true }));
       setMessageError("");
       try {
         const response = await axios.get(
@@ -384,6 +392,11 @@ const FriendsPage = () => {
           return;
         }
         setMessageError("Unable to load messages right now.");
+      } finally {
+        setMessagesLoadingByFriendId((prev) => ({
+          ...prev,
+          [friendId]: false,
+        }));
       }
     },
     [authHeaders, handleAuthError, normalizeMessage, token],
@@ -686,6 +699,7 @@ const FriendsPage = () => {
               <FriendChatPanel
                 friend={selectedFriend}
                 messages={selectedMessages}
+                loading={Boolean(messagesLoadingByFriendId[selectedFriend.id])}
                 messageInput={messageInput}
                 onMessageChange={setMessageInput}
                 onSend={handleSendMessage}

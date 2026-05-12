@@ -56,7 +56,8 @@ public class WebSocketChatController {
                 saved.getSenderId(),
                 saved.getReceiverId(),
                 saved.getContent(),
-                saved.getTimestamp()
+            saved.getTimestamp(),
+            saved.isRead()
         );
 
         messagingTemplate.convertAndSendToUser(request.getReceiverId(), "/queue/messages", payload);

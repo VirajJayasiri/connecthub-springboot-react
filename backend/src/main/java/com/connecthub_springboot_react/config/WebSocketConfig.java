@@ -1,6 +1,7 @@
 package com.connecthub_springboot_react.config;
 
 import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
@@ -12,13 +13,21 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final WebSocketAuthHandshakeInterceptor authHandshakeInterceptor;
     private final UserHandshakeHandler userHandshakeHandler;
+    private final StompAuthChannelInterceptor stompAuthChannelInterceptor;
 
     public WebSocketConfig(
             WebSocketAuthHandshakeInterceptor authHandshakeInterceptor,
-            UserHandshakeHandler userHandshakeHandler
+            UserHandshakeHandler userHandshakeHandler,
+            StompAuthChannelInterceptor stompAuthChannelInterceptor
     ) {
         this.authHandshakeInterceptor = authHandshakeInterceptor;
         this.userHandshakeHandler = userHandshakeHandler;
+        this.stompAuthChannelInterceptor = stompAuthChannelInterceptor;
+    }
+
+    @Override
+    public void configureClientInboundChannel(ChannelRegistration registration) {
+        registration.interceptors(stompAuthChannelInterceptor);
     }
 
     @Override
