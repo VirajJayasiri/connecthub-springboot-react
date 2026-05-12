@@ -601,14 +601,14 @@ const FriendsPage = () => {
           </p>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-[minmax(320px,420px)_minmax(0,1fr)] gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-[minmax(320px,420px)_minmax(0,1fr)] gap-4 h-[650px] items-stretch">
           <MessageList
             friends={filteredMessageFriends}
             selectedFriendId={selectedFriend?.id}
             onSelect={setSelectedFriend}
           />
 
-          <div className="min-h-[360px]">
+          <div className="h-full min-h-0">
             {friendsLoading ? (
               <div className="h-full min-h-[320px] flex items-center justify-center text-sm text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-neutral-800 rounded-2xl">
                 Loading conversations...

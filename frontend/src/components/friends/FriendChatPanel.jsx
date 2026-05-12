@@ -40,7 +40,7 @@ const FriendChatPanel = ({
       </div>
 
       <div
-        className="flex-1 overflow-y-auto px-4 md:px-5 py-4 space-y-3 relative"
+        className="flex-1 overflow-y-auto px-4 md:px-5 py-4 space-y-3 relative custom-scrollbar"
         onClick={onCloseContextMenu}
       >
         {messages.length === 0 ? (
