@@ -74,6 +74,10 @@ public class AuthService {
         userMap.put("username", user.getUsername());
         userMap.put("email", user.getEmail());
         userMap.put("profileImage", user.getProfileImage());
+        userMap.put("coverImage", user.getCoverImage());
+        userMap.put("bio", user.getBio());
+        userMap.put("location", user.getLocation());
+        userMap.put("website", user.getWebsite());
 
         return new AuthResponse("Login successful", token, userMap);
     }
