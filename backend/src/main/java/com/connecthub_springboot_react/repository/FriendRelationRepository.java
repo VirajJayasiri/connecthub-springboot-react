@@ -11,4 +11,5 @@ import com.connecthub_springboot_react.model.FriendRelation;
 public interface FriendRelationRepository extends MongoRepository<FriendRelation, String> {
     boolean existsByUserIdAndFriendId(String userId, String friendId);
     List<FriendRelation> findByUserIdOrFriendId(String userId, String friendId);
+    long deleteByUserIdOrFriendId(String userId, String friendId);
 }
