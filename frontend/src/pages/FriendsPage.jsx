@@ -17,6 +17,7 @@ import FriendChatPanel from "../components/friends/FriendChatPanel";
 import FriendEmptyState from "../components/friends/FriendEmptyState";
 
 const API_BASE = "http://localhost:8080";
+const FRIENDS_PRESENCE = "friends-chat";
 
 const formatTime = (timestamp) => {
   if (!timestamp) return "";
@@ -247,7 +248,8 @@ const FriendsPage = () => {
     if (!token || !currentUserId) return;
 
     const client = new Client({
-      webSocketFactory: () => new SockJS(`${API_BASE}/ws?token=${token}`),
+      webSocketFactory: () =>
+        new SockJS(`${API_BASE}/ws?token=${token}&presence=${FRIENDS_PRESENCE}`),
       reconnectDelay: 5000,
       onConnect: () => {
         setWsConnected(true);
