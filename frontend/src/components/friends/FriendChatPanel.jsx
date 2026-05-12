@@ -32,26 +32,6 @@ const FriendChatPanel = ({
           <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             {friend.name}
           </p>
-          <button
-            type="button"
-            className={`mt-1 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold border transition-colors
-              ${
-                friend.online
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-600"
-                  : "border-gray-200 bg-gray-100 text-gray-500 dark:border-gray-700 dark:bg-neutral-900 dark:text-gray-400"
-              }`}
-            aria-pressed={friend.online}
-            aria-label={
-              friend.online ? "Friend is online" : "Friend is offline"
-            }
-          >
-            <span
-              className={`h-1.5 w-1.5 rounded-full ${
-                friend.online ? "bg-emerald-500" : "bg-gray-400"
-              }`}
-            />
-            {friend.online ? "Online" : "Offline"}
-          </button>
         </div>
       </div>
 

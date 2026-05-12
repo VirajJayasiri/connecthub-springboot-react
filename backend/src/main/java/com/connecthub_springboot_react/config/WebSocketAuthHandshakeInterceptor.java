@@ -49,6 +49,10 @@ public class WebSocketAuthHandshakeInterceptor implements HandshakeInterceptor {
         }
 
         attributes.put("userId", user.getId());
+        String presence = extractPresence(request);
+        if (presence != null && !presence.isBlank()) {
+            attributes.put("presence", presence);
+        }
         return true;
     }
 
@@ -71,6 +75,17 @@ public class WebSocketAuthHandshakeInterceptor implements HandshakeInterceptor {
             String queryToken = httpServletRequest.getParameter("token");
             if (queryToken != null && !queryToken.isBlank()) {
                 return queryToken;
+            }
+        }
+        return null;
+    }
+
+    private String extractPresence(ServerHttpRequest request) {
+        if (request instanceof ServletServerHttpRequest servletRequest) {
+            HttpServletRequest httpServletRequest = servletRequest.getServletRequest();
+            String presence = httpServletRequest.getParameter("presence");
+            if (presence != null && !presence.isBlank()) {
+                return presence;
             }
         }
         return null;
