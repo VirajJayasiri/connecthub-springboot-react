@@ -2,8 +2,8 @@ import React from "react";
 
 const MessageList = ({ friends, selectedFriendId, onSelect }) => {
   return (
-    <aside className="border border-gray-200 dark:border-neutral-800 rounded-2xl bg-white dark:bg-black p-4 md:p-5">
-      <div className="mb-4">
+    <aside className="flex flex-col h-full border border-gray-200 dark:border-neutral-800 rounded-2xl bg-white dark:bg-black p-4 md:p-5 overflow-hidden">
+      <div className="mb-4 flex-shrink-0">
         <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
           Messages
         </h2>
@@ -11,7 +11,7 @@ const MessageList = ({ friends, selectedFriendId, onSelect }) => {
           {friends.length} conversations
         </p>
       </div>
-      <div className="flex flex-col gap-2">
+      <div className="flex-1 overflow-y-auto flex flex-col gap-2 pr-1 custom-scrollbar">
         {friends.map((friend) => {
           const isSelected = friend.id === selectedFriendId;
           return (
