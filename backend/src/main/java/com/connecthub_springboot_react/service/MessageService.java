@@ -57,4 +57,23 @@ public class MessageService {
         unread.forEach(message -> message.setRead(true));
         chatMessageRepository.saveAll(unread);
     }
+
+    public ChatMessage updateMessageContent(String messageId, String userId, String content) {
+        ChatMessage message = chatMessageRepository.findById(messageId)
+                .orElseThrow(() -> new RuntimeException("Message not found."));
+        if (!message.getSenderId().equals(userId)) {
+            throw new RuntimeException("You can only edit your own messages.");
+        }
+        message.setContent(content);
+        return chatMessageRepository.save(message);
+    }
+
+    public void deleteMessage(String messageId, String userId) {
+        ChatMessage message = chatMessageRepository.findById(messageId)
+                .orElseThrow(() -> new RuntimeException("Message not found."));
+        if (!message.getSenderId().equals(userId)) {
+            throw new RuntimeException("You can only delete your own messages.");
+        }
+        chatMessageRepository.delete(message);
+    }
 }
