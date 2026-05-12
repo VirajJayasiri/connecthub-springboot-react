@@ -256,7 +256,6 @@ const FriendsPage = () => {
       connectHeaders: {
         Authorization: `Bearer ${token}`,
       },
-        new SockJS(`${API_BASE}/ws?token=${token}&presence=${FRIENDS_PRESENCE}`),
       reconnectDelay: 5000,
       onConnect: () => {
         setWsConnected(true);
