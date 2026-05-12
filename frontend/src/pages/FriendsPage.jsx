@@ -47,6 +47,9 @@ const FriendsPage = () => {
   const [friendsError, setFriendsError] = useState("");
   const [messageError, setMessageError] = useState("");
   const [wsConnected, setWsConnected] = useState(false);
+  const [contextMenu, setContextMenu] = useState(null);
+  const [editingMessageId, setEditingMessageId] = useState(null);
+  const [editingContent, setEditingContent] = useState("");
   const totalUnread = useMemo(
     () => messageFriends.reduce((sum, friend) => sum + (friend.unread || 0), 0),
     [messageFriends],
@@ -79,6 +82,12 @@ const FriendsPage = () => {
   }, [selectedFriend]);
 
   useEffect(() => {
+    setContextMenu(null);
+    setEditingMessageId(null);
+    setEditingContent("");
+  }, [selectedFriend?.id]);
+
+  useEffect(() => {
     suggestedFriendsRef.current = suggestedFriends;
   }, [suggestedFriends]);
 
@@ -95,8 +104,9 @@ const FriendsPage = () => {
 
   const mapSuggestedUser = useCallback((user) => {
     const name = user.fullName || user.username || "User";
+    const id = user.id || user._id || null;
     return {
-      id: user.id,
+      id,
       name,
       avatar: buildAvatar(name, user.profileImage),
       online: Boolean(user.online),
@@ -105,8 +115,9 @@ const FriendsPage = () => {
 
   const mapFriendSummary = useCallback((friend) => {
     const name = friend.fullName || friend.username || "User";
+    const id = friend.id || friend._id || null;
     return {
-      id: friend.id,
+      id,
       name,
       avatar: buildAvatar(name, friend.profileImage),
       online: Boolean(friend.online),
@@ -129,7 +140,9 @@ const FriendsPage = () => {
         headers: authHeaders,
       });
       const users = Array.isArray(response.data) ? response.data : [];
-      setSuggestedFriends(users.map(mapSuggestedUser));
+      setSuggestedFriends(
+        users.map(mapSuggestedUser).filter((user) => user.id),
+      );
     } catch (err) {
       if (err?.response?.status === 401) {
         handleAuthError();
@@ -156,7 +169,7 @@ const FriendsPage = () => {
       const friends = Array.isArray(response.data) ? response.data : [];
       const mapped = friends.map(mapFriendSummary);
       setMessageFriends(mapped);
-      setAddedFriendIds(mapped.map((friend) => friend.id));
+      setAddedFriendIds(mapped.map((friend) => friend.id).filter((id) => id));
     } catch (err) {
       if (err?.response?.status === 401) {
         handleAuthError();
@@ -344,7 +357,7 @@ const FriendsPage = () => {
   }, [messageFriends, normalizedSearch]);
 
   const handleAddFriend = async (friendId) => {
-    if (addedFriendIds.includes(friendId)) return;
+    if (!friendId || addedFriendIds.includes(friendId)) return;
     if (!token) {
       handleAuthError();
       return;
@@ -390,6 +403,115 @@ const FriendsPage = () => {
     setAppliedSearch(searchTerm);
   };
 
+  const updateConversation = useCallback((friendId, updateFn) => {
+    setMessagesByFriendId((prev) => {
+      const current = prev[friendId] || [];
+      const next = updateFn(current);
+      setMessageFriends((friendsPrev) =>
+        friendsPrev.map((friend) =>
+          friend.id === friendId
+            ? {
+                ...friend,
+                lastMessage: next.length
+                  ? next[next.length - 1].content
+                  : "Start a conversation",
+              }
+            : friend,
+        ),
+      );
+      return { ...prev, [friendId]: next };
+    });
+  }, []);
+
+  const handleMessageContextMenu = (event, message) => {
+    if (!message?.messageId) return;
+    const isOwner =
+      message.sender === "You" || message.senderId === currentUserId;
+    if (!isOwner) return;
+    event.preventDefault();
+    setContextMenu({
+      isOpen: true,
+      x: event.clientX,
+      y: event.clientY,
+      message,
+    });
+  };
+
+  const closeContextMenu = () => {
+    setContextMenu(null);
+  };
+
+  const handleStartEdit = (message) => {
+    if (!message?.messageId) return;
+    setEditingMessageId(message.messageId);
+    setEditingContent(message.text || "");
+    setContextMenu(null);
+  };
+
+  const handleEditCancel = () => {
+    setEditingMessageId(null);
+    setEditingContent("");
+  };
+
+  const handleEditSave = async () => {
+    if (!selectedFriend?.id || !editingMessageId) return;
+    const trimmed = editingContent.trim();
+    if (!trimmed) return;
+
+    try {
+      const response = await axios.put(
+        `${API_BASE}/api/messages/${editingMessageId}`,
+        { content: trimmed },
+        { headers: authHeaders },
+      );
+      const updated = response.data;
+
+      updateConversation(selectedFriend.id, (current) =>
+        current.map((message) =>
+          (message.id || message._id) === updated.id
+            ? { ...message, content: updated.content }
+            : message,
+        ),
+      );
+
+      setEditingMessageId(null);
+      setEditingContent("");
+    } catch (err) {
+      if (err?.response?.status === 401) {
+        handleAuthError();
+        return;
+      }
+      setMessageError("Unable to update the message right now.");
+    }
+  };
+
+  const handleDeleteMessage = async (message) => {
+    if (!selectedFriend?.id || !message?.messageId) return;
+    if (!window.confirm("Delete this message?")) return;
+
+    try {
+      await axios.delete(`${API_BASE}/api/messages/${message.messageId}`, {
+        headers: authHeaders,
+      });
+
+      updateConversation(selectedFriend.id, (current) =>
+        current.filter((item) => (item.id || item._id) !== message.messageId),
+      );
+
+      setContextMenu(null);
+      if (editingMessageId === message.messageId) {
+        setEditingMessageId(null);
+        setEditingContent("");
+      }
+    } catch (err) {
+      if (err?.response?.status === 401) {
+        handleAuthError();
+        return;
+      }
+      setMessageError("Unable to delete the message right now.");
+    }
+  };
+
   const handleSendMessage = () => {
     if (!selectedFriend) return;
     const trimmed = messageInput.trim();
@@ -428,8 +550,12 @@ const FriendsPage = () => {
     const rawMessages = messagesByFriendId[selectedFriend.id] || [];
     return rawMessages.map((message) => {
       const isSender = message.senderId === currentUserId;
+      const messageId = message.id || message._id || message.messageId || null;
       return {
-        id: message.id || `${message.senderId}-${message.timestamp}`,
+        id: messageId || `${message.senderId}-${message.timestamp}`,
+        messageId,
+        senderId: message.senderId,
+        receiverId: message.receiverId,
         sender: isSender ? "You" : selectedFriend.name,
         text: message.content,
         time: formatTime(message.timestamp),
@@ -495,6 +621,16 @@ const FriendsPage = () => {
                 onMessageChange={setMessageInput}
                 onSend={handleSendMessage}
                 scrollAnchorRef={chatEndRef}
+                onMessageContextMenu={handleMessageContextMenu}
+                contextMenu={contextMenu}
+                onCloseContextMenu={closeContextMenu}
+                onStartEdit={handleStartEdit}
+                onDeleteMessage={handleDeleteMessage}
+                editingMessageId={editingMessageId}
+                editingContent={editingContent}
+                onEditChange={setEditingContent}
+                onEditSave={handleEditSave}
+                onEditCancel={handleEditCancel}
               />
             ) : (
               <FriendEmptyState />
