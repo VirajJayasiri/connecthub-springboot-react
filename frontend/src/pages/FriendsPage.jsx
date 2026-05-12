@@ -252,9 +252,12 @@ const FriendsPage = () => {
 
     const client = new Client({
       webSocketFactory: () =>
-        new SockJS(`${API_BASE}/ws?token=${encodeURIComponent(token)}`),
+        new SockJS(
+          `${API_BASE}/ws?token=${encodeURIComponent(token)}&presence=${encodeURIComponent(FRIENDS_PRESENCE)}`,
+        ),
       connectHeaders: {
         Authorization: `Bearer ${token}`,
+        presence: FRIENDS_PRESENCE,
       },
       reconnectDelay: 5000,
       onConnect: () => {

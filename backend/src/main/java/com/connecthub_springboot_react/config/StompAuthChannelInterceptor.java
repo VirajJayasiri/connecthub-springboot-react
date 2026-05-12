@@ -51,6 +51,10 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
         Map<String, Object> attributes = accessor.getSessionAttributes();
         if (attributes != null) {
             attributes.put("userId", user.getId());
+            String presence = extractPresence(accessor);
+            if (presence != null && !presence.isBlank()) {
+                attributes.put("presence", presence);
+            }
         }
 
         return message;
@@ -76,5 +80,13 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
         }
 
         return authHeader;
+    }
+
+    private String extractPresence(StompHeaderAccessor accessor) {
+        List<String> headers = accessor.getNativeHeader("presence");
+        if (headers == null || headers.isEmpty()) {
+            return null;
+        }
+        return headers.get(0);
     }
 }

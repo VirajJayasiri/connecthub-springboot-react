@@ -1,7 +1,6 @@
 package com.connecthub_springboot_react.config;
 
 import java.security.Principal;
-import java.util.Map;
 
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -26,11 +25,7 @@ public class WebSocketEventListener {
 
     @EventListener
     public void handleSessionConnected(SessionConnectEvent event) {
-        StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
-        if (!isPresenceTracked(accessor)) {
-            return;
-        }
-        Principal user = accessor.getUser();
+        Principal user = StompHeaderAccessor.wrap(event.getMessage()).getUser();
         if (user == null) {
             return;
         }
@@ -41,25 +36,12 @@ public class WebSocketEventListener {
 
     @EventListener
     public void handleSessionDisconnected(SessionDisconnectEvent event) {
-        StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
-        if (!isPresenceTracked(accessor)) {
-            return;
-        }
-        Principal user = accessor.getUser();
+        Principal user = StompHeaderAccessor.wrap(event.getMessage()).getUser();
         if (user == null) {
             return;
         }
         String userId = user.getName();
         onlineUserTracker.markOffline(userId);
         messagingTemplate.convertAndSend("/topic/status", new UserStatusDto(userId, false));
-    }
-
-    private boolean isPresenceTracked(StompHeaderAccessor accessor) {
-        Map<String, Object> attributes = accessor.getSessionAttributes();
-        if (attributes == null) {
-            return false;
-        }
-        Object presence = attributes.get("presence");
-        return "friends-chat".equals(presence);
     }
 }
