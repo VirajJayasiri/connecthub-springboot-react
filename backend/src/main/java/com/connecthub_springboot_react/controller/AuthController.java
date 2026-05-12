@@ -1,18 +1,26 @@
 package com.connecthub_springboot_react.controller;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.connecthub_springboot_react.dto.AuthResponse;
+import com.connecthub_springboot_react.dto.DeleteAccountRequest;
 import com.connecthub_springboot_react.dto.LoginRequest;
 import com.connecthub_springboot_react.dto.RegisterRequest;
 import com.connecthub_springboot_react.model.User;
 import com.connecthub_springboot_react.repository.UserRepository;
 import com.connecthub_springboot_react.service.AuthService;
-import jakarta.validation.Valid;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -55,5 +63,21 @@ public class AuthController {
         profile.put("profileImage", user.getProfileImage());
 
         return ResponseEntity.ok(profile);
+    }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteAccount(
+            Authentication authentication,
+            @RequestBody DeleteAccountRequest request
+    ) {
+        String password = request == null || request.getPassword() == null
+                ? ""
+                : request.getPassword().trim();
+        if (password.isEmpty()) {
+            throw new RuntimeException("Password is required");
+        }
+
+        authService.deleteAccount(authentication.getName(), password);
+        return ResponseEntity.noContent().build();
     }
 }
