@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, useMotionValue, useTransform, useSpring, useInView, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import Pricing from './Pricing';
+import whiteLogo from '../assets/images/white_logo.png';
+import blackLogo from '../assets/images/black_logo.png';
 import { 
   MessageSquare, 
   Mic, 
@@ -19,22 +22,15 @@ import {
   Plus
 } from 'lucide-react';
 
-const Logo = ({ className = "w-14 h-14", color = "currentColor", innerColor = "transparent" }) => {
+// Logo component — uses real PNG, blend mode hides solid backgrounds
+const Logo = ({ className = 'w-14 h-14', variant = 'dark' }) => {
+  const isLight = variant === 'light';
   return (
-    <svg viewBox="0 0 100 100" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M 18 50 C 18 15, 82 15, 82 50" stroke={color} strokeWidth="8" strokeLinecap="round" />
-      <rect x="8" y="45" width="14" height="26" rx="6" fill={color} />
-      <rect x="78" y="45" width="14" height="26" rx="6" fill={color} />
-      <path d="M 22 55 C 22 25, 78 25, 78 55 C 78 85, 45 85, 22 95 C 26 85, 27 75, 24 65 C 22.5 60, 22 58, 22 55 Z" fill={color} />
-      <rect x="34" y="46" width="3" height="12" rx="1.5" fill={innerColor} />
-      <rect x="41" y="40" width="3" height="24" rx="1.5" fill={innerColor} />
-      <rect x="48" y="34" width="4" height="36" rx="2" fill={innerColor} />
-      <rect x="56" y="40" width="3" height="24" rx="1.5" fill={innerColor} />
-      <rect x="63" y="46" width="3" height="12" rx="1.5" fill={innerColor} />
-      <circle cx="35.5" cy="72" r="3.5" fill={innerColor} />
-      <circle cx="50" cy="72" r="3.5" fill={innerColor} />
-      <circle cx="64.5" cy="72" r="3.5" fill={innerColor} />
-    </svg>
+    <img
+      src={isLight ? blackLogo : whiteLogo}
+      alt="ConnectHub Logo"
+      className={`${className} object-contain ${isLight ? 'logo-light' : 'logo-dark'}`}
+    />
   );
 };
 
@@ -59,18 +55,19 @@ const Navbar = () => {
   };
 
   return (
-    <nav className={`fixed w-full z-50 transition-all duration-300 ${scrolled ? 'glass py-4' : 'bg-transparent py-6'}`}>
+    <nav className={`fixed w-full z-50 transition-all duration-500 ${scrolled ? 'glass py-3 shadow-[0_1px_0_rgba(255,255,255,0.06)]' : 'bg-transparent py-5'}`}>
       <div className="max-w-7xl mx-auto px-6 flex justify-between items-center text-white">
-        <div className="flex items-center gap-2 cursor-pointer group" onClick={scrollToTop}>
-          <Logo className="w-14 h-14 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] group-hover:scale-110 transition-transform" color="white" innerColor="black" />
-          <span className="text-2xl font-bold tracking-tight">ConnectHub</span>
+        <div className="flex items-center gap-3 cursor-pointer group" onClick={scrollToTop}>
+          <Logo className="w-14 h-14 group-hover:scale-110 transition-transform duration-300" variant="dark" />
+          <span className="text-2xl md:text-3xl font-bold tracking-tight font-display">ConnectHub</span>
         </div>
         
         {/* Desktop Nav */}
-        <div className="hidden md:flex items-center gap-8 text-sm font-medium text-neutral-300">
-          <a href="#features" className="hover:text-white transition-colors">Features</a>
-          <a href="#how-it-works" className="hover:text-white transition-colors">How it Works</a>
-          <a href="#community" className="hover:text-white transition-colors">Community</a>
+        <div className="hidden md:flex items-center gap-8 text-sm font-medium text-neutral-400">
+          <a href="#features" className="hover:text-white transition-colors duration-200 hover:tracking-wide">Features</a>
+          <a href="#how-it-works" className="hover:text-white transition-colors duration-200 hover:tracking-wide">How it Works</a>
+          <a href="#community" className="hover:text-white transition-colors duration-200 hover:tracking-wide">Community</a>
+          <a href="#pricing" className="hover:text-white transition-colors duration-200 hover:tracking-wide">Pricing</a>
         </div>
         
         <div className="hidden md:flex items-center gap-4">
@@ -104,6 +101,7 @@ const Navbar = () => {
           <a href="#features" className="text-neutral-300 hover:text-white" onClick={() => setIsOpen(false)}>Features</a>
           <a href="#how-it-works" className="text-neutral-300 hover:text-white" onClick={() => setIsOpen(false)}>How it Works</a>
           <a href="#community" className="text-neutral-300 hover:text-white" onClick={() => setIsOpen(false)}>Community</a>
+          <a href="#pricing" className="text-neutral-300 hover:text-white" onClick={() => setIsOpen(false)}>Pricing</a>
           <hr className="border-white/10 my-2" />
           <button 
             onClick={() => { navigate('/login'); setIsOpen(false); }}
@@ -126,26 +124,31 @@ const Navbar = () => {
 const Hero = () => {
   const navigate = useNavigate();
   return (
-    <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden flex flex-col items-center justify-center min-h-screen text-white">
-      {/* Background Gradients */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-white/5 blur-[120px] rounded-full pointer-events-none" />
+    <section id="home" className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden flex flex-col items-center justify-center min-h-screen text-white">
+      {/* Animated Background Orbs */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-white/5 blur-[140px] rounded-full pointer-events-none animate-pulse" />
+      <div className="absolute top-1/3 left-[15%] w-[400px] h-[400px] bg-emerald-900/10 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute top-1/3 right-[15%] w-[400px] h-[400px] bg-amber-900/10 blur-[120px] rounded-full pointer-events-none" />
+      {/* Grid lines overlay */}
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:60px_60px] pointer-events-none" />
       
       <div className="max-w-7xl mx-auto px-6 text-center relative z-10 glow-effect">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="inline-flex items-center gap-2 px-3 py-1 rounded-full glass text-xs font-medium text-neutral-300 mb-8 border border-white/10"
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass text-xs font-medium text-neutral-300 mb-8 border border-white/15 shadow-[0_0_20px_rgba(255,255,255,0.05)]"
         >
-          <span className="flex h-2 w-2 rounded-full bg-white animate-pulse"></span>
+          <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
           ConnectHub 1.0 is now live
+          <ChevronRight size={12} className="text-neutral-500" />
         </motion.div>
 
         <motion.h1 
           initial={{ opacity: 0, scale: 0.95, filter: "blur(10px)" }}
           animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
           transition={{ duration: 0.8, delay: 0.1, type: "spring", stiffness: 100 }}
-          className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white via-neutral-300 to-neutral-600 animate-gradient bg-[length:200%_auto]"
+          className="font-display text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight mb-6 pb-4 pr-2 bg-clip-text text-transparent bg-gradient-to-r from-white via-neutral-200 to-neutral-500 animate-gradient bg-[length:200%_auto] leading-[1.05]"
         >
           Where Communities <br className="hidden md:block" />
           Come Alive
@@ -164,18 +167,73 @@ const Hero = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-4"
+          className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
         >
           <button 
             onClick={() => navigate('/register')}
-            className="w-full sm:w-auto px-8 py-4 rounded-full bg-white text-black font-semibold hover:bg-neutral-200 transition-all flex items-center justify-center gap-2 group"
+            className="w-full sm:w-auto px-8 py-4 rounded-full bg-white text-black font-semibold hover:bg-neutral-100 hover:scale-105 transition-all flex items-center justify-center gap-2 group shadow-[0_0_30px_rgba(255,255,255,0.2)]"
           >
             Start Communicating
             <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
           </button>
-          <button className="w-full sm:w-auto px-8 py-4 rounded-full glass text-white font-semibold hover:bg-white/10 transition-all border border-white/10">
+          <button className="w-full sm:w-auto px-8 py-4 rounded-full glass text-white font-semibold hover:bg-white/10 hover:scale-105 transition-all border border-white/15 backdrop-blur-sm">
             View Live Demo
           </button>
+        </motion.div>
+
+        {/* Social proof stats bar */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.45 }}
+          className="flex flex-wrap items-center justify-center gap-8 text-sm text-neutral-500"
+        >
+          <div className="flex items-center gap-2">
+            <div className="flex -space-x-2">
+              {[11,5,33,1].map(i => (
+                <img key={i} src={`https://i.pravatar.cc/150?img=${i}`} className="w-7 h-7 rounded-full border-2 border-black" alt="user" />
+              ))}
+            </div>
+            <span><span className="text-white font-semibold">50k+</span> active users</span>
+          </div>
+          <div className="w-px h-4 bg-white/10 hidden sm:block" />
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span><span className="text-white font-semibold">10k+</span> live rooms</span>
+          </div>
+          <div className="w-px h-4 bg-white/10 hidden sm:block" />
+          <div className="flex items-center gap-2">
+            <Shield size={14} className="text-white" />
+            <span><span className="text-white font-semibold">99.9%</span> uptime</span>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.55 }}
+          className="mt-10 flex flex-wrap items-center justify-center gap-3 text-xs"
+        >
+          {[
+            { label: 'Voice Rooms', icon: Mic },
+            { label: 'Instant Text', icon: MessageSquare },
+            { label: 'Secure Auth', icon: Shield },
+            { label: 'Room Search', icon: Search },
+            { label: 'Topic Tags', icon: Hash },
+          ].map((item, index) => {
+            const Icon = item.icon;
+            return (
+              <motion.span
+                key={item.label}
+                animate={{ y: [0, -8, 0] }}
+                transition={{ duration: 3 + index * 0.4, repeat: Infinity, ease: 'easeInOut' }}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 text-neutral-300 backdrop-blur-sm hover:bg-white/10 hover:text-white transition-all"
+              >
+                <Icon size={12} className="text-white/80" />
+                {item.label}
+              </motion.span>
+            );
+          })}
         </motion.div>
       </div>
 
@@ -191,7 +249,7 @@ const Hero = () => {
           {/* Top Nav */}
           <div className="h-14 border-b border-neutral-200 flex items-center px-6 justify-between bg-white flex-shrink-0 text-black">
             <div className="flex items-center gap-2">
-              <Logo className="w-8 h-8" color="black" innerColor="white" />
+              <Logo className="w-8 h-8" variant="light" />
               <span className="text-sm font-bold hidden sm:block">ConnectHub</span>
             </div>
             
@@ -471,9 +529,11 @@ const Features = () => {
   ];
 
   return (
-    <section id="features" className="py-24 relative bg-neutral-950 text-white border-b border-white/5 overflow-hidden">
-      {/* Dynamic background light */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-white/5 blur-[150px] rounded-full pointer-events-none" />
+    <section id="features" className="py-32 relative bg-neutral-950 text-white border-b border-white/5 overflow-hidden">
+      {/* Dynamic background lights */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] bg-white/5 blur-[150px] rounded-full pointer-events-none" />
+      <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-emerald-900/10 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-cyan-900/10 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         <div className="text-center max-w-2xl mx-auto mb-20">
@@ -490,7 +550,7 @@ const Features = () => {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-4xl md:text-6xl font-bold mb-6 tracking-tight"
+            className="font-display text-4xl md:text-6xl font-extrabold mb-6 tracking-tight"
           >
             Everything you need. <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-neutral-500 to-white">Nothing you don't.</span>
@@ -537,6 +597,8 @@ const HowItWorks = () => {
 
   return (
     <section id="how-it-works" className="py-32 relative bg-black text-white overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.03)_0%,transparent_70%)] pointer-events-none" />
       <div className="absolute top-1/2 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent hidden lg:block -translate-y-1/2 z-0"></div>
       
       <div className="max-w-7xl mx-auto px-6 relative z-10">
@@ -545,7 +607,7 @@ const HowItWorks = () => {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-3xl md:text-5xl font-bold mb-6 tracking-tight"
+            className="font-display text-3xl md:text-5xl font-extrabold mb-6 tracking-tight"
           >
             Seamlessly <span className="text-transparent bg-clip-text bg-gradient-to-r from-neutral-500 to-white">Simple</span>
           </motion.h2>
@@ -570,11 +632,11 @@ const HowItWorks = () => {
               transition={{ delay: index * 0.2 }}
               className="relative flex flex-col items-center text-center group"
             >
-              <div className="w-20 h-20 rounded-full bg-black border border-white/20 flex items-center justify-center text-2xl font-bold mb-8 group-hover:border-white transition-colors duration-500 relative z-10">
+              <div className="w-20 h-20 rounded-full bg-black border border-white/20 flex items-center justify-center text-2xl font-bold mb-8 group-hover:border-white group-hover:shadow-[0_0_30px_rgba(255,255,255,0.15)] transition-all duration-500 relative z-10">
                 {step.num}
                 <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-10 blur-xl transition-opacity duration-500"></div>
               </div>
-              <h3 className="text-2xl font-semibold mb-4">{step.title}</h3>
+              <h3 className="text-2xl font-semibold mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-neutral-400 transition-all duration-300">{step.title}</h3>
               <p className="text-neutral-400 leading-relaxed max-w-sm">
                 {step.desc}
               </p>
@@ -591,6 +653,7 @@ const Community = () => {
     <section id="community" className="py-32 relative bg-neutral-950 text-white overflow-hidden border-t border-white/5">
       {/* Background decoration */}
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-white/5 blur-[150px] rounded-full pointer-events-none"></div>
+      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-amber-900/10 blur-[120px] rounded-full pointer-events-none"></div>
 
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         <div className="flex flex-col lg:flex-row items-center gap-16">
@@ -604,7 +667,7 @@ const Community = () => {
               <Heart size={14} className="text-white" />
               Loved by thousands
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 tracking-tight leading-tight">
+            <h2 className="font-display text-4xl md:text-5xl font-extrabold mb-6 tracking-tight leading-tight">
               A growing network of <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-neutral-400 to-white">creators and builders</span>
             </h2>
@@ -690,28 +753,38 @@ const Community = () => {
 const CTA = () => {
   const navigate = useNavigate();
   return (
-    <section className="py-24 relative bg-black text-white">
+    <section id="get-started" className="py-24 relative bg-black text-white overflow-hidden">
+      {/* Animated background */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_50%,rgba(255,255,255,0.04)_0%,transparent_70%)] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-white/5 blur-[100px] rounded-full pointer-events-none" />
       <div className="max-w-5xl mx-auto px-6 relative z-10">
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
-          className="p-12 md:p-16 rounded-[2rem] bg-white text-black text-center relative overflow-hidden shadow-[0_0_50px_rgba(255,255,255,0.1)]"
+          className="p-12 md:p-16 rounded-[2rem] bg-white text-black text-center relative overflow-hidden shadow-[0_0_80px_rgba(255,255,255,0.15)]"
         >
-          <Logo className="w-16 h-16 mx-auto mb-6 object-contain" color="black" innerColor="white" />
-          <h2 className="text-3xl md:text-5xl font-bold mb-6 tracking-tight">Ready to build your community?</h2>
+          {/* Subtle background pattern */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(0,0,0,0.04)_0%,transparent_60%)] pointer-events-none" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(0,0,0,0.04)_0%,transparent_60%)] pointer-events-none" />
+          <Logo className="w-20 h-20 mx-auto mb-6" variant="light" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/5 border border-black/10 text-xs font-medium text-neutral-600 mb-6">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            Free to get started · No credit card required
+          </div>
+          <h2 className="font-display text-3xl md:text-5xl font-extrabold mb-6 tracking-tight">Ready to build your community?</h2>
           <p className="text-neutral-600 text-lg mb-10 max-w-2xl mx-auto">
-            Join thousands of students and teams already using ConnectHub to streamline their communication. Free to get started.
+            Join thousands of students and teams already using ConnectHub to streamline their communication.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button 
               onClick={() => navigate('/register')}
-              className="px-8 py-4 rounded-full bg-black text-white font-semibold hover:scale-105 transition-transform flex items-center justify-center gap-2 group"
+              className="px-8 py-4 rounded-full bg-black text-white font-semibold hover:scale-105 hover:shadow-xl transition-all flex items-center justify-center gap-2 group"
             >
               Create an Account <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </button>
-            <button className="px-8 py-4 rounded-full bg-neutral-100 text-black font-semibold hover:bg-neutral-200 transition-colors border border-neutral-300">
+            <button className="px-8 py-4 rounded-full bg-neutral-100 text-black font-semibold hover:bg-neutral-200 hover:scale-105 transition-all border border-neutral-200">
               Explore Rooms
             </button>
           </div>
@@ -731,68 +804,44 @@ const Footer = () => {
       <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
       
       <div className="max-w-7xl mx-auto px-6 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-20">
-          <div className="col-span-1 md:col-span-2 lg:col-span-1">
-            <div className="flex items-center gap-3 mb-6 cursor-pointer group" onClick={scrollToTop}>
-              <Logo className="w-10 h-10 group-hover:scale-110 transition-transform" color="white" innerColor="black" />
-              <span className="text-2xl font-bold tracking-tight">ConnectHub</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-20">
+          <div>
+            <div className="flex items-center gap-4 mb-6 cursor-pointer group" onClick={scrollToTop}>
+              <Logo className="w-12 h-12 group-hover:scale-110 transition-transform duration-300" variant="dark" />
+              <span className="text-2xl font-bold tracking-tight font-display">ConnectHub</span>
             </div>
             <p className="text-neutral-400 text-sm leading-relaxed mb-6">
               The modern, lightweight communication platform for learning, gaming, and collaborating in real-time.
             </p>
-            <div className="flex gap-4">
-              <a href="#" className="w-10 h-10 rounded-full glass border border-white/10 flex items-center justify-center hover:bg-white hover:text-black hover:scale-110 transition-all">
-                <Globe size={18} />
-              </a>
-              <a href="#" className="w-10 h-10 rounded-full glass border border-white/10 flex items-center justify-center hover:bg-white hover:text-black hover:scale-110 transition-all">
-                <MessageSquare size={18} />
-              </a>
-              <a href="#" className="w-10 h-10 rounded-full glass border border-white/10 flex items-center justify-center hover:bg-white hover:text-black hover:scale-110 transition-all">
-                <Users size={18} />
-              </a>
-            </div>
           </div>
           
-          <div className="lg:ml-auto">
-            <h4 className="font-semibold text-white mb-6">Platform</h4>
+          <div className="md:justify-self-end">
+            <h4 className="font-semibold text-white mb-6 font-display tracking-wide text-sm uppercase">Sections</h4>
             <ul className="space-y-3 text-sm text-neutral-400">
-              <li><a href="#features" className="hover:text-white hover:translate-x-1 inline-block transition-transform">Features</a></li>
-              <li><a href="#how-it-works" className="hover:text-white hover:translate-x-1 inline-block transition-transform">How it Works</a></li>
-              <li><a href="#community" className="hover:text-white hover:translate-x-1 inline-block transition-transform">Community</a></li>
-              <li><a href="#" className="hover:text-white hover:translate-x-1 inline-block transition-transform">Pricing</a></li>
-            </ul>
-          </div>
-
-          <div className="lg:ml-auto">
-            <h4 className="font-semibold text-white mb-6">Resources</h4>
-            <ul className="space-y-3 text-sm text-neutral-400">
-              <li><a href="#" className="hover:text-white hover:translate-x-1 inline-block transition-transform">Documentation</a></li>
-              <li><a href="#" className="hover:text-white hover:translate-x-1 inline-block transition-transform">Help Center</a></li>
-              <li><a href="#" className="hover:text-white hover:translate-x-1 inline-block transition-transform">API Reference</a></li>
-              <li><a href="#" className="hover:text-white hover:translate-x-1 inline-block transition-transform">Blog</a></li>
-            </ul>
-          </div>
-
-          <div className="lg:ml-auto">
-            <h4 className="font-semibold text-white mb-6">Company</h4>
-            <ul className="space-y-3 text-sm text-neutral-400">
-              <li><a href="#" className="hover:text-white hover:translate-x-1 inline-block transition-transform">About Us</a></li>
-              <li><a href="#" className="hover:text-white hover:translate-x-1 inline-block transition-transform">Careers</a></li>
-              <li><a href="#" className="hover:text-white hover:translate-x-1 inline-block transition-transform">Privacy Policy</a></li>
-              <li><a href="#" className="hover:text-white hover:translate-x-1 inline-block transition-transform">Terms of Service</a></li>
+              <li><a href="#home" className="hover:text-white hover:translate-x-1 inline-block transition-all duration-200">Home</a></li>
+              <li><a href="#features" className="hover:text-white hover:translate-x-1 inline-block transition-all duration-200">Features</a></li>
+              <li><a href="#how-it-works" className="hover:text-white hover:translate-x-1 inline-block transition-all duration-200">How it Works</a></li>
+              <li><a href="#community" className="hover:text-white hover:translate-x-1 inline-block transition-all duration-200">Community</a></li>
+              <li><a href="#pricing" className="hover:text-white hover:translate-x-1 inline-block transition-all duration-200">Pricing</a></li>
+              <li><a href="#get-started" className="hover:text-white hover:translate-x-1 inline-block transition-all duration-200">Get Started</a></li>
             </ul>
           </div>
         </div>
 
         <div className="flex flex-col items-center justify-center border-t border-white/10 pt-12">
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-[12vw] font-black leading-none tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white/20 to-transparent select-none pointer-events-none mb-8"
+            className="w-full text-center select-none pointer-events-none mb-6 overflow-visible"
           >
-            CONNECTHUB
-          </motion.h1>
+            <span
+              className="font-display font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white/15 to-transparent"
+              style={{ fontSize: 'clamp(4rem, 16vw, 12rem)', lineHeight: '1.2', display: 'inline-block', paddingBottom: '0.25em' }}
+            >
+              CONNECTHUB
+            </span>
+          </motion.div>
           <div className="flex flex-col md:flex-row justify-between items-center w-full text-xs text-neutral-500">
             <p>© {new Date().getFullYear()} ConnectHub. All rights reserved.</p>
             <div className="flex gap-6 mt-4 md:mt-0">
@@ -813,6 +862,7 @@ const LandingPage = () => {
       <Features />
       <HowItWorks />
       <Community />
+      <Pricing />
       <CTA />
       <Footer />
     </div>
