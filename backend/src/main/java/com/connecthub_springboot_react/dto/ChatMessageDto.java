@@ -9,16 +9,25 @@ public class ChatMessageDto {
     private String receiverId;
     private String content;
     private Instant timestamp;
+    private boolean read;
 
     public ChatMessageDto() {
     }
 
-    public ChatMessageDto(String id, String senderId, String receiverId, String content, Instant timestamp) {
+    public ChatMessageDto(
+            String id,
+            String senderId,
+            String receiverId,
+            String content,
+            Instant timestamp,
+            boolean read
+    ) {
         this.id = id;
         this.senderId = senderId;
         this.receiverId = receiverId;
         this.content = content;
         this.timestamp = timestamp;
+        this.read = read;
     }
 
     public String getId() {
@@ -59,5 +68,13 @@ public class ChatMessageDto {
 
     public void setTimestamp(Instant timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public boolean isRead() {
+        return read;
+    }
+
+    public void setRead(boolean read) {
+        this.read = read;
     }
 }

@@ -4,6 +4,7 @@ import { Send } from "lucide-react";
 const FriendChatPanel = ({
   friend,
   messages,
+  loading,
   messageInput,
   onMessageChange,
   onSend,
@@ -38,7 +39,11 @@ const FriendChatPanel = ({
         className="flex-1 overflow-y-auto px-4 md:px-5 py-4 space-y-3 relative custom-scrollbar"
         onClick={onCloseContextMenu}
       >
-        {messages.length === 0 ? (
+        {loading ? (
+          <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+            Loading messages...
+          </p>
+        ) : messages.length === 0 ? (
           <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
             No messages yet. Say hello!
           </p>

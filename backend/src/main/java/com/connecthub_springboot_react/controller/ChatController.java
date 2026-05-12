@@ -46,7 +46,8 @@ public class ChatController {
                         message.getSenderId(),
                         message.getReceiverId(),
                         message.getContent(),
-                        message.getTimestamp()
+                        message.getTimestamp(),
+                        message.isRead()
                 ))
                 .toList();
 
@@ -78,7 +79,8 @@ public class ChatController {
                 updated.getSenderId(),
                 updated.getReceiverId(),
                 updated.getContent(),
-                updated.getTimestamp()
+                updated.getTimestamp(),
+                updated.isRead()
         );
 
         return ResponseEntity.ok(response);
