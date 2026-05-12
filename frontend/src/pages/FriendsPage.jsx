@@ -186,6 +186,63 @@ const FriendsPage = () => {
     fetchFriends();
   }, [fetchSuggested, fetchFriends]);
 
+  const normalizeMessage = useCallback((message) => {
+    if (!message) return null;
+    const content = message.content ?? message.text ?? "";
+    const timestamp =
+      message.timestamp ?? message.time ?? message.createdAt ?? message.sentAt;
+    const messageId =
+      message.id ?? message._id ?? message.messageId ?? message.localId ?? null;
+    return {
+      ...message,
+      id: messageId,
+      messageId,
+      content,
+      timestamp,
+    };
+  }, []);
+
+  const appendMessage = useCallback(
+    (friendId, message, { replacePending = false } = {}) => {
+      const normalized = normalizeMessage(message);
+      if (!normalized || !friendId) return;
+
+      setMessagesByFriendId((prev) => {
+        const existing = prev[friendId] || [];
+        const normalizedId =
+          normalized.id ?? normalized.messageId ?? normalized.localId;
+        const withoutPending = replacePending
+          ? existing.filter(
+              (item) =>
+                !(
+                  item.pending &&
+                  item.senderId === normalized.senderId &&
+                  item.receiverId === normalized.receiverId &&
+                  item.content === normalized.content
+                ),
+            )
+          : existing;
+
+        if (
+          normalizedId &&
+          withoutPending.some(
+            (item) =>
+              (item.id ?? item.messageId ?? item._id ?? item.localId) ===
+              normalizedId,
+          )
+        ) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          [friendId]: [...withoutPending, normalized],
+        };
+      });
+    },
+    [normalizeMessage],
+  );
+
   useEffect(() => {
     if (!token || !currentUserId) return;
 
@@ -197,16 +254,14 @@ const FriendsPage = () => {
         setMessageError("");
         client.subscribe("/user/queue/messages", (message) => {
           const payload = JSON.parse(message.body || "{}");
+          const normalizedPayload = normalizeMessage(payload);
+          if (!normalizedPayload) return;
           const otherId =
-            payload.senderId === currentUserId
-              ? payload.receiverId
-              : payload.senderId;
+            normalizedPayload.senderId === currentUserId
+              ? normalizedPayload.receiverId
+              : normalizedPayload.senderId;
 
-          setMessagesByFriendId((prev) => {
-            const existing = prev[otherId] || [];
-            const next = [...existing, payload];
-            return { ...prev, [otherId]: next };
-          });
+          appendMessage(otherId, normalizedPayload, { replacePending: true });
 
           setMessageFriends((prev) => {
             const index = prev.findIndex((friend) => friend.id === otherId);
@@ -216,14 +271,14 @@ const FriendsPage = () => {
                 selectedFriendIdRef.current &&
                 selectedFriendIdRef.current === otherId;
               const unread =
-                payload.senderId === currentUserId
+                normalizedPayload.senderId === currentUserId
                   ? 0
                   : isSelected
                     ? 0
                     : (friend.unread || 0) + 1;
               const updatedFriend = {
                 ...friend,
-                lastMessage: payload.content,
+                lastMessage: normalizedPayload.content,
                 unread,
               };
               return [
@@ -242,8 +297,8 @@ const FriendsPage = () => {
             return [
               {
                 ...suggested,
-                lastMessage: payload.content,
-                unread: payload.senderId === currentUserId ? 0 : 1,
+                lastMessage: normalizedPayload.content,
+                unread: normalizedPayload.senderId === currentUserId ? 0 : 1,
               },
               ...prev,
             ];
@@ -295,7 +350,7 @@ const FriendsPage = () => {
       stompClientRef.current = null;
       client.deactivate();
     };
-  }, [currentUserId, token]);
+  }, [appendMessage, currentUserId, normalizeMessage, token]);
 
   const loadMessages = useCallback(
     async (friendId) => {
@@ -311,9 +366,12 @@ const FriendsPage = () => {
           { headers: authHeaders },
         );
         const messages = Array.isArray(response.data) ? response.data : [];
+        const normalized = messages
+          .map((message) => normalizeMessage(message))
+          .filter(Boolean);
         setMessagesByFriendId((prev) => ({
           ...prev,
-          [friendId]: messages,
+          [friendId]: normalized,
         }));
         setMessageFriends((prev) =>
           prev.map((friend) =>
@@ -328,7 +386,7 @@ const FriendsPage = () => {
         setMessageError("Unable to load messages right now.");
       }
     },
-    [authHeaders, handleAuthError, token],
+    [authHeaders, handleAuthError, normalizeMessage, token],
   );
 
   useEffect(() => {
@@ -522,6 +580,17 @@ const FriendsPage = () => {
       setMessageError("Real-time connection is unavailable.");
       return;
     }
+
+    const localMessage = {
+      localId: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      senderId: currentUserId,
+      receiverId: selectedFriend.id,
+      content: trimmed,
+      timestamp: new Date().toISOString(),
+      pending: true,
+    };
+
+    appendMessage(selectedFriend.id, localMessage);
 
     client.publish({
       destination: "/app/chat.send",
