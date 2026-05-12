@@ -98,29 +98,3 @@ html.dark .app-page {
   100% { transform: translateX(30%)  translateY(-10%) scale(1);   opacity: 0; }
 }
 .animate-aurora { animation: aurora ease-in-out infinite; }
-
-/* ── Custom Scrollbar ── */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #e5e7eb;
-  border-radius: 10px;
-}
-
-html.dark .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #27272a;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #d1d5db;
-}
-
-html.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
-}
