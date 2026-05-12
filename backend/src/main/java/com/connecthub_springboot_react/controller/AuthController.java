@@ -8,9 +8,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.connecthub_springboot_react.dto.AuthResponse;
 import com.connecthub_springboot_react.dto.DeleteAccountRequest;
@@ -19,6 +22,7 @@ import com.connecthub_springboot_react.dto.RegisterRequest;
 import com.connecthub_springboot_react.model.User;
 import com.connecthub_springboot_react.repository.UserRepository;
 import com.connecthub_springboot_react.service.AuthService;
+import com.connecthub_springboot_react.service.UserService;
 
 import jakarta.validation.Valid;
 
@@ -28,10 +32,12 @@ public class AuthController {
 
     private final AuthService authService;
     private final UserRepository userRepository;
+    private final UserService userService;
 
-    public AuthController(AuthService authService, UserRepository userRepository) {
+    public AuthController(AuthService authService, UserRepository userRepository, UserService userService) {
         this.authService = authService;
         this.userRepository = userRepository;
+        this.userService = userService;
     }
 
     @PostMapping("/register")
@@ -55,14 +61,36 @@ public class AuthController {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Map<String, Object> profile = new LinkedHashMap<>();
-        profile.put("_id", user.getId());
-        profile.put("fullName", user.getFullName());
-        profile.put("username", user.getUsername());
-        profile.put("email", user.getEmail());
-        profile.put("profileImage", user.getProfileImage());
+        return ResponseEntity.ok(buildProfile(user));
+        }
 
-        return ResponseEntity.ok(profile);
+        /**
+         * PUT /api/auth/me — update profile details and optional images.
+         * Accepts multipart fields: fullName, email, bio, location, website, profileImage, coverImage.
+         */
+        @PutMapping("/me")
+        public ResponseEntity<Map<String, Object>> updateCurrentUser(
+            Authentication authentication,
+            @RequestParam(value = "fullName", required = false) String fullName,
+            @RequestParam(value = "email", required = false) String email,
+            @RequestParam(value = "bio", required = false) String bio,
+            @RequestParam(value = "location", required = false) String location,
+            @RequestParam(value = "website", required = false) String website,
+            @RequestParam(value = "profileImage", required = false) MultipartFile profileImage,
+            @RequestParam(value = "coverImage", required = false) MultipartFile coverImage
+        ) {
+        User updated = userService.updateProfile(
+            authentication.getName(),
+            fullName,
+            email,
+            bio,
+            location,
+            website,
+            profileImage,
+            coverImage
+        );
+
+        return ResponseEntity.ok(buildProfile(updated));
     }
 
     @DeleteMapping("/me")
@@ -79,5 +107,19 @@ public class AuthController {
 
         authService.deleteAccount(authentication.getName(), password);
         return ResponseEntity.noContent().build();
+    }
+
+    private Map<String, Object> buildProfile(User user) {
+        Map<String, Object> profile = new LinkedHashMap<>();
+        profile.put("_id", user.getId());
+        profile.put("fullName", user.getFullName());
+        profile.put("username", user.getUsername());
+        profile.put("email", user.getEmail());
+        profile.put("profileImage", user.getProfileImage());
+        profile.put("coverImage", user.getCoverImage());
+        profile.put("bio", user.getBio());
+        profile.put("location", user.getLocation());
+        profile.put("website", user.getWebsite());
+        return profile;
     }
 }

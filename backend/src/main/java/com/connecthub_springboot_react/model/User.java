@@ -24,6 +24,14 @@ public class User {
 
     private String profileImage;
 
+    private String coverImage;
+
+    private String bio;
+
+    private String location;
+
+    private String website;
+
     // Manual Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
@@ -42,4 +50,16 @@ public class User {
 
     public String getProfileImage() { return profileImage; }
     public void setProfileImage(String profileImage) { this.profileImage = profileImage; }
+
+    public String getCoverImage() { return coverImage; }
+    public void setCoverImage(String coverImage) { this.coverImage = coverImage; }
+
+    public String getBio() { return bio; }
+    public void setBio(String bio) { this.bio = bio; }
+
+    public String getLocation() { return location; }
+    public void setLocation(String location) { this.location = location; }
+
+    public String getWebsite() { return website; }
+    public void setWebsite(String website) { this.website = website; }
 }

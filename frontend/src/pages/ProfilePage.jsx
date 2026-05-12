@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppNavbar from "../components/common/AppNavbar";
 import {
@@ -33,20 +33,84 @@ const EditProfileModal = ({ user, onSave, onClose }) => {
     website: user.website || "",
   });
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [profileFile, setProfileFile] = useState(null);
+  const [coverFile, setCoverFile] = useState(null);
+  const [profilePreview, setProfilePreview] = useState("");
+  const [coverPreview, setCoverPreview] = useState("");
+  const profileInputRef = useRef(null);
+  const coverInputRef = useRef(null);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  const handleProfileSelect = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (profilePreview) URL.revokeObjectURL(profilePreview);
+    setProfileFile(file);
+    setProfilePreview(URL.createObjectURL(file));
+  };
+
+  const handleCoverSelect = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (coverPreview) URL.revokeObjectURL(coverPreview);
+    setCoverFile(file);
+    setCoverPreview(URL.createObjectURL(file));
+  };
+
+  useEffect(() => {
+    return () => {
+      if (profilePreview) URL.revokeObjectURL(profilePreview);
+      if (coverPreview) URL.revokeObjectURL(coverPreview);
+    };
+  }, [profilePreview, coverPreview]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    // Simulate save delay (profile update API can be added later)
-    await new Promise((r) => setTimeout(r, 800));
-    onSave(form);
-    setSaving(false);
-    onClose();
+    setError("");
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("You are not logged in.");
+      setSaving(false);
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("fullName", form.name.trim());
+      formData.append("email", form.email.trim());
+      formData.append("bio", form.bio.trim());
+      formData.append("location", form.location.trim());
+      formData.append("website", form.website.trim());
+      if (profileFile) formData.append("profileImage", profileFile);
+      if (coverFile) formData.append("coverImage", coverFile);
+
+      const response = await axios.put(`${API_BASE}/api/auth/me`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      onSave(response.data);
+      onClose();
+    } catch (err) {
+      setError(err?.response?.data?.message || "Unable to update profile");
+    } finally {
+      setSaving(false);
+    }
   };
+
+  const avatarUrl =
+    profilePreview ||
+    user.profileImage ||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || "U")}&background=random&size=64`;
+  const coverUrl = coverPreview || user.coverImage || "";
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -64,23 +128,70 @@ const EditProfileModal = ({ user, onSave, onClose }) => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+          {error && (
+            <div className="px-4 py-3 rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-900/40">
+              <p className="text-sm text-rose-600 dark:text-rose-400 font-medium">
+                {error}
+              </p>
+            </div>
+          )}
+
+          {/* Cover preview */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Cover Photo
+            </label>
+            <div className="relative">
+              <div className="h-28 w-full rounded-xl overflow-hidden border border-gray-200 dark:border-neutral-800">
+                {coverUrl ? (
+                  <img
+                    src={coverUrl}
+                    alt="Cover"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="h-full w-full bg-gradient-to-r from-sky-400 via-indigo-500 to-purple-500" />
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => coverInputRef.current?.click()}
+                className="absolute bottom-2 right-2 px-3 py-1.5 rounded-lg bg-gray-900/90 text-white text-xs font-medium hover:bg-gray-900"
+              >
+                Change Cover
+              </button>
+              <input
+                ref={coverInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleCoverSelect}
+              />
+            </div>
+          </div>
+
           {/* Avatar preview */}
           <div className="flex items-center gap-4">
             <div className="relative">
               <img
-                src={
-                  user.profileImage ||
-                  `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || "U")}&background=random&size=64`
-                }
+                src={avatarUrl}
                 alt={form.name}
                 className="w-16 h-16 rounded-full object-cover border-2 border-gray-200 dark:border-neutral-800"
               />
               <button
                 type="button"
+                onClick={() => profileInputRef.current?.click()}
                 className="absolute -bottom-1 -right-1 w-7 h-7 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full flex items-center justify-center hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors"
               >
                 <Camera size={13} />
               </button>
+              <input
+                ref={profileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleProfileSelect}
+              />
             </div>
             <div>
               <p className="text-sm font-medium text-gray-900 dark:text-white">
@@ -313,15 +424,9 @@ const ProfilePage = () => {
     fetchProfile();
   }, [navigate]);
 
-  const handleSave = (updates) => {
-    setUser((prev) => ({
-      ...prev,
-      fullName: updates.name,
-      email: updates.email,
-      bio: updates.bio,
-      location: updates.location,
-      website: updates.website,
-    }));
+  const handleSave = (updatedUser) => {
+    setUser(updatedUser);
+    localStorage.setItem("user", JSON.stringify(updatedUser));
   };
 
   const handleLogout = () => {
@@ -382,6 +487,12 @@ const ProfilePage = () => {
   const avatarUrl =
     user.profileImage ||
     `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || user.username || "U")}&background=6366f1&color=fff&size=150`;
+  const coverUrl = user.coverImage || "";
+  const websiteHref = user.website
+    ? user.website.startsWith("http")
+      ? user.website
+      : `https://${user.website}`
+    : "";
 
   return (
     <div className="app-page">
@@ -392,9 +503,17 @@ const ProfilePage = () => {
         <div className="bg-white dark:bg-neutral-900 rounded-2xl overflow-hidden shadow-sm border border-gray-200 dark:border-neutral-800 mb-4">
           <div
             className="h-44 w-full"
-            style={{
-              background: "linear-gradient(135deg, #22c1c3 0%, #3b5bdb 100%)",
-            }}
+            style={
+              coverUrl
+                ? {
+                    backgroundImage: `url(${coverUrl})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }
+                : {
+                    background: "linear-gradient(135deg, #22c1c3 0%, #3b5bdb 100%)",
+                  }
+            }
           />
 
           <div className="px-6 pb-5">
@@ -467,7 +586,7 @@ const ProfilePage = () => {
               <span className="flex items-center gap-2">
                 <Globe size={15} className="text-gray-400 dark:text-gray-500 flex-shrink-0" />
                 <a
-                  href={`https://${user.website}`}
+                  href={websiteHref}
                   target="_blank"
                   rel="noreferrer"
                   className="text-blue-500 dark:text-blue-400 hover:underline"
