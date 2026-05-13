@@ -3,6 +3,7 @@ import AppNavbar from "../components/common/AppNavbar";
 import {
   Search,
   Plus,
+  X,
   MessageSquare,
   Mic,
   Video,
@@ -10,7 +11,11 @@ import {
   Users,
   ArrowLeft,
   Send,
+  Lock,
+  Globe,
+  Monitor,
 } from "lucide-react";
+import VoiceRoom from "../components/chat/VoiceRoom";
 
 /* ─── Mock data ─────────────────────────────────────────────── */
 const ROOMS = [
@@ -138,6 +143,7 @@ const EmptyState = () => (
 
 const RoomPanel = ({ room, onBack }) => {
   const Icon = TYPE_ICON[room.type];
+  const [isJoined, setIsJoined] = useState(false);
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -171,6 +177,10 @@ const RoomPanel = ({ room, onBack }) => {
     ]);
     setText("");
   };
+
+  if (isJoined && (room.type === "voice" || room.type === "video")) {
+    return <VoiceRoom room={room} onLeave={() => setIsJoined(false)} />;
+  }
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-[#050505] transition-colors duration-500">
@@ -241,7 +251,10 @@ const RoomPanel = ({ room, onBack }) => {
                 ? "Join this voice channel to talk with other members in real-time. Make sure your microphone is connected."
                 : "Join this video channel to collaborate face-to-face. Make sure your camera and microphone are ready."}
             </p>
-            <button className="flex items-center gap-2.5 px-6 py-3 rounded-xl font-semibold text-white transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm bg-gray-900 dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 ring-gray-900/20 hover:ring-4">
+            <button 
+              onClick={() => setIsJoined(true)}
+              className="flex items-center gap-2.5 px-6 py-3 rounded-xl font-semibold text-white transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm bg-gray-900 dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 ring-gray-900/20 hover:ring-4"
+            >
               <Icon size={18} strokeWidth={2} />
               Join {room.type === "voice" ? "Voice" : "Video"} Room
             </button>
@@ -284,85 +297,118 @@ const CreateModal = ({ onClose, onCreate }) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [type, setType] = useState("text");
+  const [privacy, setPrivacy] = useState("public");
   const [error, setError] = useState("");
 
   const handleCreate = () => {
     const trimmedName = name.trim();
-    const trimmedDescription = description.trim();
-
-    if (!trimmedName || !trimmedDescription) {
-      setError("Room name and description are required.");
+    if (!trimmedName) {
+      setError("Room name is required.");
       return;
     }
 
     onCreate({
       name: trimmedName,
-      description: trimmedDescription,
+      description: description.trim(),
       type,
+      privacy,
     });
   };
+
   return (
-    <div className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-black rounded-2xl shadow-xl w-full max-w-md p-6 border border-transparent dark:border-neutral-800 transition-colors duration-500">
-        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-          Create a Room
-        </h2>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Room Name
-        </label>
-        <input
-          value={name}
-          onChange={(e) => {
-            setName(e.target.value);
-            setError("");
-          }}
-          placeholder="e.g. Study Together"
-          className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-neutral-800 bg-transparent dark:bg-neutral-900 text-gray-900 dark:text-gray-100 text-sm outline-none focus:border-gray-900 dark:focus:border-gray-500 mb-4 placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
-        />
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Description
-        </label>
-        <textarea
-          value={description}
-          onChange={(e) => {
-            setDescription(e.target.value);
-            setError("");
-          }}
-          placeholder="Add a short room description"
-          rows={3}
-          className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-neutral-800 bg-transparent dark:bg-neutral-900 text-gray-900 dark:text-gray-100 text-sm outline-none focus:border-gray-900 dark:focus:border-gray-500 mb-4 placeholder-gray-400 dark:placeholder-gray-500 transition-colors resize-none"
-        />
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Room Type
-        </label>
-        <div className="flex gap-2 mb-6">
-          {["text", "voice", "video"].map((t) => (
-            <button
-              key={t}
-              onClick={() => {
-                setType(t);
-                setError("");
-              }}
-              className={`flex-1 py-2 rounded-xl text-sm font-medium border transition-all duration-300
-                ${type === t ? "bg-gray-900 dark:bg-white text-white dark:text-black border-gray-900 dark:border-white" : "border-gray-200 dark:border-neutral-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-900"}`}
-            >
-              {t.charAt(0).toUpperCase() + t.slice(1)}
+    <div className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+      <div className="bg-white dark:bg-neutral-900 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-transparent dark:border-neutral-800 animate-in zoom-in-95 duration-300">
+        <div className="p-6 md:p-8">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Create Chat Room</h2>
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-full transition-colors">
+              <X size={20} className="text-gray-400" />
             </button>
-          ))}
+          </div>
+
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Room Name</label>
+              <input
+                value={name}
+                onChange={(e) => { setName(e.target.value); setError(""); }}
+                placeholder="Enter room name"
+                className="w-full px-4 py-3 rounded-2xl border border-gray-100 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-gray-100 text-sm outline-none focus:ring-2 ring-gray-900/5 transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Topic</label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="What is this room about?"
+                rows={3}
+                className="w-full px-4 py-3 rounded-2xl border border-gray-100 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-gray-100 text-sm outline-none focus:ring-2 ring-gray-900/5 transition-all resize-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">Room Type</label>
+              <div className="space-y-2">
+                {[
+                  { id: "text", label: "Text Chat", sub: "Send messages", Icon: MessageSquare },
+                  { id: "voice", label: "Voice Chat", sub: "Talk with audio", Icon: Mic },
+                  { id: "video", label: "Video Chat", sub: "Video calls", Icon: Video },
+                ].map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setType(t.id)}
+                    className={`w-full flex items-center gap-4 p-3 rounded-2xl border transition-all duration-300 text-left
+                      ${type === t.id ? "bg-gray-900 dark:bg-white text-white dark:text-black border-transparent" : "bg-white dark:bg-neutral-800 border-gray-100 dark:border-neutral-800 text-gray-600 dark:text-gray-400 hover:border-gray-200"}`}
+                  >
+                    <div className={`p-2 rounded-xl ${type === t.id ? "bg-white/10 dark:bg-black/5" : "bg-gray-100 dark:bg-neutral-700"}`}>
+                      <t.Icon size={18} />
+                    </div>
+                    <div>
+                      <div className="font-bold text-sm">{t.label}</div>
+                      <div className="text-[11px] opacity-60">{t.sub}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">Privacy Settings</label>
+              <div className="space-y-2">
+                {[
+                  { id: "public", label: "Public", sub: "Anyone can join", Icon: Globe },
+                  { id: "private", label: "Private", sub: "Requires approval to join", Icon: Lock },
+                ].map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => setPrivacy(p.id)}
+                    className={`w-full flex items-center gap-4 p-3 rounded-2xl border transition-all duration-300 text-left
+                      ${privacy === p.id ? "bg-gray-900 dark:bg-white text-white dark:text-black border-transparent" : "bg-white dark:bg-neutral-800 border-gray-100 dark:border-neutral-800 text-gray-600 dark:text-gray-400 hover:border-gray-200"}`}
+                  >
+                    <div className={`p-2 rounded-xl ${privacy === p.id ? "bg-white/10 dark:bg-black/5" : "bg-gray-100 dark:bg-neutral-700"}`}>
+                      <p.Icon size={18} />
+                    </div>
+                    <div>
+                      <div className="font-bold text-sm">{p.label}</div>
+                      <div className="text-[11px] opacity-60">{p.sub}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {error && <p className="mt-4 text-xs font-bold text-red-500">{error}</p>}
         </div>
-        {error && <p className="text-xs text-red-500 mb-3">{error}</p>}
-        <div className="flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 py-2 rounded-xl border border-gray-200 dark:border-neutral-800 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-900 transition-colors"
-          >
-            Cancel
-          </button>
+
+        <div className="p-6 md:p-8 pt-0">
           <button
             onClick={handleCreate}
-            className="flex-1 py-2 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-black text-sm font-medium hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors"
+            className="w-full py-4 rounded-2xl bg-gray-900 dark:bg-white text-white dark:text-black text-sm font-bold hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-gray-900/10"
           >
-            Create
+            Create Room
           </button>
         </div>
       </div>

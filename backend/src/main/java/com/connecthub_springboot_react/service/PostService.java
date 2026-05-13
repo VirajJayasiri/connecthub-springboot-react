@@ -32,10 +32,12 @@ public class PostService {
 
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
+    private final S3Service s3Service;
 
-    public PostService(PostRepository postRepository, CommentRepository commentRepository) {
+    public PostService(PostRepository postRepository, CommentRepository commentRepository, S3Service s3Service) {
         this.postRepository = postRepository;
         this.commentRepository = commentRepository;
+        this.s3Service = s3Service;
     }
 
     // ── Create Post ────────────────────────────────────────────
@@ -53,30 +55,23 @@ public class PostService {
 
         if (media != null && !media.isEmpty()) {
             String contentType = media.getContentType();
-            if (contentType != null && contentType.startsWith("video")) {
-                post.setMediaType("VIDEO");
+            if (contentType != null) {
+                if (contentType.startsWith("video")) {
+                    post.setMediaType("VIDEO");
+                } else if (contentType.startsWith("audio")) {
+                    post.setMediaType("AUDIO");
+                } else {
+                    post.setMediaType("IMAGE");
+                }
             } else {
                 post.setMediaType("IMAGE");
             }
             
             try {
-                Path uploadDir = Paths.get("uploads");
-                if (!Files.exists(uploadDir)) {
-                    Files.createDirectories(uploadDir);
-                }
-                
-                String originalFilename = media.getOriginalFilename();
-                String extension = "";
-                if (originalFilename != null && originalFilename.contains(".")) {
-                    extension = originalFilename.substring(originalFilename.lastIndexOf("."));
-                }
-                String filename = UUID.randomUUID().toString() + extension;
-                Path filePath = uploadDir.resolve(filename);
-                Files.copy(media.getInputStream(), filePath);
-                
-                post.setMediaUrl("http://localhost:8080/uploads/" + filename);
+                String mediaUrl = s3Service.uploadFile(media);
+                post.setMediaUrl(mediaUrl);
             } catch (IOException e) {
-                throw new RuntimeException("Failed to store file", e);
+                throw new RuntimeException("Failed to upload file to S3", e);
             }
         }
 
@@ -136,6 +131,10 @@ public class PostService {
 
         if (!post.getAuthorId().equals(userId)) {
             throw new RuntimeException("Not authorized to delete this post");
+        }
+
+        if (post.getMediaUrl() != null) {
+            s3Service.deleteFile(post.getMediaUrl());
         }
 
         commentRepository.deleteAllByPostId(postId);
