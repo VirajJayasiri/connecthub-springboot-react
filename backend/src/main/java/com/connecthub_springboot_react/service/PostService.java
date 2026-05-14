@@ -73,7 +73,7 @@ public class PostService {
             try {
                 String mediaUrl;
                 if (s3Service.isPresent()) {
-                    mediaUrl = s3Service.get().uploadFile(media);
+                    mediaUrl = s3Service.get().uploadFile(media, "posts");
                 } else {
                     mediaUrl = saveMediaLocal(media);
                 }

@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppNavbar from '../components/common/AppNavbar';
 import { MapPin, Globe, Calendar, Edit2, X, Camera, LogOut, Loader2 } from 'lucide-react';
-import axios from 'axios';
+import API from '../services/api';
 
 const API_BASE = 'http://localhost:8080';
 
@@ -14,7 +14,7 @@ const StatCard = ({ value, label }) => (
 );
 
 /* ─── Edit Profile Modal ─────────────────────────────────────── */
-const EditProfileModal = ({ user, onSave, onClose }) => {
+const EditProfileModal = ({ user, onSave, onClose, onProfileImageUpdated }) => {
   const [form, setForm] = useState({
     name:     user.fullName || '',
     email:    user.email || '',
@@ -23,6 +23,38 @@ const EditProfileModal = ({ user, onSave, onClose }) => {
     website:  user.website || '',
   });
   const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState('');
+  const fileInputRef = useRef(null);
+
+  const handlePhotoSelect = async (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (!f.type.startsWith('image/')) {
+      setPhotoError('Please choose an image file.');
+      return;
+    }
+    setPhotoError('');
+    setUploadingPhoto(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', f);
+      const res = await API.post('/auth/me/profile-image', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      if (res.data?.profileImage && onProfileImageUpdated) {
+        onProfileImageUpdated(res.data.profileImage);
+      }
+    } catch (err) {
+      console.error(err);
+      setPhotoError(
+        err.response?.data?.message || err.message || 'Could not upload photo.',
+      );
+    } finally {
+      setUploadingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -56,6 +88,13 @@ const EditProfileModal = ({ user, onSave, onClose }) => {
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           {/* Avatar preview */}
           <div className="flex items-center gap-4">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handlePhotoSelect}
+            />
             <div className="relative">
               <img
                 src={user.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || 'U')}&background=random&size=64`}
@@ -64,14 +103,22 @@ const EditProfileModal = ({ user, onSave, onClose }) => {
               />
               <button
                 type="button"
-                className="absolute -bottom-1 -right-1 w-7 h-7 bg-gray-900 text-white rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors"
+                disabled={uploadingPhoto}
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute -bottom-1 -right-1 w-7 h-7 bg-gray-900 text-white rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors disabled:opacity-50"
+                title="Change profile photo"
               >
-                <Camera size={13} />
+                {uploadingPhoto ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <Camera size={13} />
+                )}
               </button>
             </div>
             <div>
               <p className="text-sm font-medium text-gray-900">{form.name || 'Your Name'}</p>
-              <p className="text-xs text-gray-400">Click the camera icon to change photo</p>
+              <p className="text-xs text-gray-400">Click the camera icon to upload (saved to your account)</p>
+              {photoError && <p className="text-xs text-red-500 mt-1">{photoError}</p>}
             </div>
           </div>
 
@@ -216,6 +263,19 @@ const ProfilePage = () => {
     }));
   };
 
+  const handleProfileImageUpdated = (url) => {
+    setUser((prev) => (prev ? { ...prev, profileImage: url } : prev));
+    try {
+      const raw = localStorage.getItem('user');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        localStorage.setItem('user', JSON.stringify({ ...parsed, profileImage: url }));
+      }
+    } catch {
+      /* ignore */
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -330,6 +390,7 @@ const ProfilePage = () => {
           user={user}
           onSave={handleSave}
           onClose={() => setIsEditing(false)}
+          onProfileImageUpdated={handleProfileImageUpdated}
         />
       )}
     </div>
