@@ -81,19 +81,11 @@
 			<version>2.20.103</version>
 		</dependency>
 
-<<<<<<< Updated upstream
 		<!-- LiveKit access tokens for Docker dev server (LIVEKIT_KEYS) -->
 		<dependency>
 			<groupId>io.livekit</groupId>
 			<artifactId>livekit-server</artifactId>
 			<version>0.12.1</version>
-=======
-		<!-- LiveKit SDK -->
-		<dependency>
-			<groupId>io.livekit</groupId>
-			<artifactId>livekit-server</artifactId>
-			<version>0.5.2</version>
->>>>>>> Stashed changes
 		</dependency>
 	</dependencies>
 

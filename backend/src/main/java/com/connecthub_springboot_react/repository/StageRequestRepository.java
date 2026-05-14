@@ -12,4 +12,6 @@ public interface StageRequestRepository extends MongoRepository<StageRequest, St
     List<StageRequest> findByRoomIdAndStatus(String roomId, StageRequestStatus status);
 
     Optional<StageRequest> findByRoomIdAndUserIdAndStatus(String roomId, String userId, StageRequestStatus status);
+
+    void deleteByRoomId(String roomId);
 }

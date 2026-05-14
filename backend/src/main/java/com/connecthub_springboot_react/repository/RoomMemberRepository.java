@@ -13,4 +13,6 @@ public interface RoomMemberRepository extends MongoRepository<RoomMember, String
     Optional<RoomMember> findByRoomIdAndUserId(String roomId, String userId);
 
     long countByRoomId(String roomId);
+
+    void deleteByRoomId(String roomId);
 }

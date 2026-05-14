@@ -12,7 +12,9 @@ export function mapRoomFromApi(dto) {
       ? new Date(dto.createdAt).toLocaleString()
       : "",
     hostUserId: dto.hostUserId,
+    hostId: dto.hostUserId,
     myRole: dto.myRole,
+    privacy: "Public",
   };
 }
 
@@ -43,4 +45,8 @@ export async function fetchRoomState(roomId) {
 export async function fetchLiveKitToken(roomId) {
   const { data } = await API.get(`/rooms/${roomId}/livekit-token`);
   return data;
+}
+
+export async function deleteRoomApi(roomId) {
+  await API.delete(`/rooms/${roomId}`);
 }

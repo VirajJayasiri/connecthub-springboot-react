@@ -1,8 +1,4 @@
-<<<<<<< Updated upstream
 import React, { useEffect, useMemo, useState } from "react";
-=======
-import React, { useMemo, useState, useEffect } from "react";
->>>>>>> Stashed changes
 import AppNavbar from "../components/common/AppNavbar";
 import RoomPanel from "../components/chat/RoomPanel";
 import {
@@ -17,16 +13,7 @@ import {
   Lock,
   Globe,
 } from "lucide-react";
-<<<<<<< Updated upstream
-import { fetchRooms, createRoomApi } from "../services/roomsApi";
-=======
-import API from "../services/api";
-import VoiceRoom from "../components/chat/VoiceRoom";
-
-/* ─── Mock data ─────────────────────────────────────────────── */
-// We will now fetch these from the backend
-const ROOMS = [];
->>>>>>> Stashed changes
+import { createRoomApi, deleteRoomApi, fetchRooms } from "../services/roomsApi";
 
 const TYPE_ICON = { text: MessageSquare, voice: Mic, video: Video };
 const TYPE_LABEL = {
@@ -42,14 +29,23 @@ const FILTERS = [
   { key: "video", label: "Video", Icon: Video },
 ];
 
-/* ─── Sub-components ─────────────────────────────────────────── */
+function readCurrentUser() {
+  try {
+    const raw = localStorage.getItem("user");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 const RoomCard = ({ room, isSelected, onSelect, onTerminate, currentUserId }) => {
   const typeKey = (room.type || "text").toLowerCase();
   const Icon = TYPE_ICON[typeKey] || MessageSquare;
-  const isHost = room.hostId === currentUserId;
+  const isHost = room.hostId === currentUserId || room.hostUserId === currentUserId;
 
   return (
     <button
+      type="button"
       onClick={() => onSelect(room)}
       className={`w-full text-left p-4 rounded-xl transition-all duration-300 mb-2 group relative
         ${
@@ -70,6 +66,7 @@ const RoomCard = ({ room, isSelected, onSelect, onTerminate, currentUserId }) =>
         <div className="flex items-center gap-2">
           {isHost && (
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 onTerminate(room.id);
@@ -92,7 +89,7 @@ const RoomCard = ({ room, isSelected, onSelect, onTerminate, currentUserId }) =>
         <span className="flex items-center gap-1.5">
           <Users size={14} /> {room.members || 0} members
         </span>
-        <span className="font-medium">{isHost ? "You are Host" : room.privacy}</span>
+        <span className="font-medium">{isHost ? "You are Host" : room.privacy || "Public"}</span>
       </div>
     </button>
   );
@@ -109,170 +106,11 @@ const EmptyState = () => (
       Welcome to Chat Rooms
     </h2>
     <p className="text-sm text-gray-400 dark:text-gray-500">
-      Select a room to start chatting or{" "}
-      <span className="text-blue-500 cursor-pointer hover:underline">
-        create a new one
-      </span>
+      Select a room to start chatting or create a new one.
     </p>
   </div>
 );
 
-<<<<<<< Updated upstream
-=======
-const RoomPanel = ({ room, onBack, onTerminate, currentUserId }) => {
-  const typeKey = (room.type || "text").toLowerCase();
-  const Icon = TYPE_ICON[typeKey] || MessageSquare;
-  const [isJoined, setIsJoined] = useState(false);
-  const [messages, setMessages] = useState([]);
-  const [text, setText] = useState("");
-
-  const send = () => {
-    const trimmed = text.trim();
-    if (!trimmed || room.type !== "text") return;
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        sender: "You",
-        text: trimmed,
-        time: new Date().toLocaleTimeString([], {
-          hour: "numeric",
-          minute: "2-digit",
-        }),
-      },
-    ]);
-    setText("");
-  };
-
-  const typeKeyLower = (room.type || "text").toLowerCase();
-
-  if (isJoined && (typeKeyLower === "voice" || typeKeyLower === "video")) {
-    return <VoiceRoom room={room} onLeave={() => setIsJoined(false)} />;
-  }
-
-  return (
-    <div className="flex flex-col h-full bg-white dark:bg-[#050505] transition-colors duration-500">
-      <div className="px-4 md:px-6 py-3 md:py-4 border-b border-gray-200 dark:border-neutral-800 bg-white dark:bg-black transition-colors duration-500">
-        <div className="flex items-center gap-2">
-          {onBack && (
-            <button
-              onClick={onBack}
-              className="md:hidden p-1.5 -ml-2 mr-1 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors flex-shrink-0"
-            >
-              <ArrowLeft size={18} />
-            </button>
-          )}
-          <Icon
-            size={16}
-            className="text-gray-400 dark:text-gray-500 flex-shrink-0"
-          />
-          <h2 className="font-bold text-gray-900 dark:text-gray-100 text-base md:text-lg truncate">
-            {room.name}
-          </h2>
-          <span className="text-xs px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 ml-1 whitespace-nowrap hidden sm:inline-block">
-            {TYPE_LABEL[typeKeyLower]}
-          </span>
-          <div className="flex-1" />
-          {room.hostId === currentUserId && (
-            <button
-              onClick={() => onTerminate(room.id)}
-              className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors flex items-center gap-2"
-              title="Terminate Room"
-            >
-              <X size={18} />
-              <span className="text-xs font-bold hidden sm:inline">Terminate</span>
-            </button>
-          )}
-        </div>
-        <p className="text-sm text-gray-400 dark:text-gray-500 mt-1 line-clamp-1">
-          {room.description}
-        </p>
-        <span className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 mt-1">
-          <Users size={12} /> {room.members} members
-        </span>
-      </div>
-
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 space-y-3">
-        {typeKeyLower === "text" ? (
-          messages.map((m) => (
-            <div
-              key={m.id}
-              className={`flex gap-3 ${m.sender === "You" ? "flex-row-reverse" : ""}`}
-            >
-              <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex-shrink-0 flex items-center justify-center text-xs font-bold text-gray-500 dark:text-gray-400">
-                {m.sender[0]}
-              </div>
-              <div
-                className={`max-w-xs ${m.sender === "You" ? "items-end" : ""} flex flex-col`}
-              >
-                <span className="text-xs text-gray-400 dark:text-gray-500 mb-1">
-                  {m.sender} · {m.time}
-                </span>
-                <div
-                  className={`px-3 py-2 rounded-xl text-sm ${m.sender === "You" ? "bg-gray-900 dark:bg-white text-white dark:text-black" : "bg-gray-100 dark:bg-neutral-900 text-gray-800 dark:text-gray-200"}`}
-                >
-                  {m.text}
-                </div>
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full text-center px-4">
-            <div className="w-20 h-20 rounded-full mb-6 flex items-center justify-center shadow-inner bg-gray-100 dark:bg-neutral-900 text-gray-800 dark:text-gray-200 transition-colors duration-500">
-              <Icon size={40} strokeWidth={1.5} />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-              {room.type === "voice" ? "Voice Channel" : "Video Channel"}
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mb-8 leading-relaxed">
-              {room.type === "voice"
-                ? "Join this voice channel to talk with other members in real-time. Make sure your microphone is connected."
-                : "Join this video channel to collaborate face-to-face. Make sure your camera and microphone are ready."}
-            </p>
-            <button 
-              onClick={() => setIsJoined(true)}
-              className="flex items-center gap-2.5 px-6 py-3 rounded-xl font-semibold text-white transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm bg-gray-900 dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 ring-gray-900/20 hover:ring-4"
-            >
-              <Icon size={18} strokeWidth={2} />
-              Join {room.type === "voice" ? "Voice" : "Video"} Room
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Input */}
-      <div className="px-3 md:px-4 py-3 border-t border-gray-200 dark:border-neutral-800 bg-white dark:bg-black transition-colors duration-500">
-        <div className="flex items-center gap-2 bg-gray-100 dark:bg-neutral-900 rounded-xl px-3 md:px-4 py-2">
-          <input
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && send()}
-            className="flex-1 bg-transparent text-sm text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 outline-none"
-            placeholder={
-              room.type === "text"
-                ? `Message #${room.name}...`
-                : "Text messaging is unavailable in this room"
-            }
-            disabled={room.type !== "text"}
-          />
-          {room.type === "text" && (
-            <button
-              onClick={send}
-              disabled={!text.trim()}
-              className="p-1.5 bg-gray-900 dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:hover:bg-gray-900 dark:disabled:hover:bg-white"
-              title="Send message"
-            >
-              <Send size={18} />
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
->>>>>>> Stashed changes
 const CreateModal = ({ onClose, onCreate }) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -296,24 +134,40 @@ const CreateModal = ({ onClose, onCreate }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-      <div className="bg-white dark:bg-neutral-900 rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden border border-transparent dark:border-neutral-800 animate-in zoom-in-95 duration-300">
-        {/* Header - Fixed */}
-        <div className="p-6 md:p-8 pb-4 flex justify-between items-center border-b border-gray-100 dark:border-neutral-800">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Create Chat Room</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-full transition-colors">
+    <div
+      className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 pt-6 pb-10 sm:py-10 overflow-y-auto overscroll-contain bg-black/40 dark:bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+      role="presentation"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md min-h-0 max-h-[min(88dvh,calc(100dvh-4rem))] flex flex-col overflow-hidden rounded-3xl shadow-2xl bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 animate-in zoom-in-95 duration-200"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-room-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex-shrink-0 p-6 md:p-8 pb-4 flex justify-between items-center border-b border-gray-100 dark:border-neutral-800">
+          <h2 id="create-room-title" className="text-xl font-bold text-gray-900 dark:text-gray-100">
+            Create Chat Room
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
+          >
             <X size={20} className="text-gray-400" />
           </button>
         </div>
 
-        {/* Content - Scrollable */}
-        <div className="flex-1 overflow-y-auto p-6 md:p-8 pt-4">
-          <div className="space-y-6">
+        <div className="flex-1 min-h-0 overflow-y-auto p-6 md:p-8 space-y-6">
             <div>
               <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Room Name</label>
               <input
                 value={name}
-                onChange={(e) => { setName(e.target.value); setError(""); }}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setError("");
+                }}
                 placeholder="Enter room name"
                 className="w-full px-4 py-3 rounded-2xl border border-gray-100 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-gray-100 text-sm outline-none focus:ring-2 ring-gray-900/5 transition-all"
               />
@@ -374,6 +228,7 @@ const CreateModal = ({ onClose, onCreate }) => {
                 ].map((p) => (
                   <button
                     key={p.id}
+                    type="button"
                     onClick={() => setPrivacy(p.id)}
                     className={`w-full flex items-center gap-4 p-3 rounded-2xl border transition-all duration-300 text-left
                       ${privacy === p.id ? "bg-gray-900 dark:bg-white text-white dark:text-black border-transparent" : "bg-white dark:bg-neutral-800 border-gray-100 dark:border-neutral-800 text-gray-600 dark:text-gray-400 hover:border-gray-200"}`}
@@ -389,16 +244,15 @@ const CreateModal = ({ onClose, onCreate }) => {
                 ))}
               </div>
             </div>
-          </div>
 
-          {error && <p className="mt-4 text-xs font-bold text-red-500">{error}</p>}
+          {error && <p className="text-xs font-bold text-red-500">{error}</p>}
         </div>
 
-        {/* Footer - Fixed */}
-        <div className="p-6 md:p-8 pt-4 border-t border-gray-100 dark:border-neutral-800">
+        <div className="flex-shrink-0 p-6 md:p-8 pt-0 border-t border-gray-100 dark:border-neutral-800 bg-white dark:bg-neutral-900">
           <button
+            type="button"
             onClick={handleCreate}
-            className="w-full py-4 rounded-2xl bg-gray-900 dark:bg-white text-white dark:text-black text-sm font-bold hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-gray-900/10"
+            className="w-full py-4 rounded-2xl bg-gray-900 dark:bg-white text-white dark:text-black text-sm font-bold hover:opacity-90 active:scale-[0.99] transition-all shadow-xl shadow-gray-900/10"
           >
             Create Room
           </button>
@@ -408,15 +262,17 @@ const CreateModal = ({ onClose, onCreate }) => {
   );
 };
 
-/* ─── Main Page ─────────────────────────────────────────────── */
 export default function ChatRoomsPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [rooms, setRooms] = useState([]);
-<<<<<<< Updated upstream
   const [loadError, setLoadError] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const currentUser = useMemo(() => readCurrentUser(), []);
+  const currentUserId = currentUser?._id || currentUser?.id || null;
 
   useEffect(() => {
     let cancelled = false;
@@ -432,6 +288,8 @@ export default function ChatRoomsPage() {
         if (!cancelled) {
           setLoadError("Could not load rooms. Is the backend running and are you logged in?");
         }
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
     })();
     return () => {
@@ -446,45 +304,11 @@ export default function ChatRoomsPage() {
     }
     try {
       const newRoom = await createRoomApi({ name, description, type });
-=======
-  const [isLoading, setIsLoading] = useState(true);
-
-  const userStr = localStorage.getItem("user");
-  const currentUser = userStr ? JSON.parse(userStr) : null;
-  const token = localStorage.getItem("token");
-
-  useEffect(() => {
-    fetchRooms();
-  }, []);
-
-  const fetchRooms = async () => {
-    try {
-      const response = await API.get("/rooms");
-      setRooms(response.data);
-    } catch (err) {
-      console.error("Error fetching rooms:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleCreateRoom = async ({ name, description, type, privacy }) => {
-    try {
-      const response = await API.post("/rooms", {
-        name,
-        description,
-        type,
-        privacy
-      });
-      
-      const newRoom = response.data;
->>>>>>> Stashed changes
       setRooms((prev) => [newRoom, ...prev]);
       setSelected(newRoom);
       setFilter(type);
       setSearch("");
       setShowModal(false);
-<<<<<<< Updated upstream
       setLoadError(null);
     } catch (e) {
       console.error(e);
@@ -493,22 +317,19 @@ export default function ChatRoomsPage() {
         e?.message ||
         "Could not create room (check room type and login).";
       setLoadError(String(msg));
-=======
-    } catch (err) {
-      console.error("Error creating room:", err);
     }
   };
 
   const handleTerminateRoom = async (roomId) => {
     if (!window.confirm("Are you sure you want to terminate this room?")) return;
-    
     try {
-      await API.delete(`/rooms/${roomId}`);
-      setRooms((prev) => prev.filter(r => r.id !== roomId));
+      await deleteRoomApi(roomId);
+      setRooms((prev) => prev.filter((r) => r.id !== roomId));
       if (selected?.id === roomId) setSelected(null);
+      setLoadError(null);
     } catch (err) {
-      console.error("Error terminating room:", err);
->>>>>>> Stashed changes
+      console.error(err);
+      setLoadError("Could not delete room.");
     }
   };
 
@@ -518,7 +339,7 @@ export default function ChatRoomsPage() {
       const rType = (r.type || "text").toLowerCase();
       const rName = (r.name || "").toLowerCase();
       const rDesc = (r.description || "").toLowerCase();
-      
+
       return (
         (filter === "all" || rType === filter) &&
         (!term || rName.includes(term) || rDesc.includes(term))
@@ -536,7 +357,6 @@ export default function ChatRoomsPage() {
         </div>
       )}
 
-      {/* Search + Create bar */}
       <div className="bg-white dark:bg-black border-b border-gray-200 dark:border-neutral-800 transition-colors duration-500">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
           <div className="flex items-center gap-2 max-w-sm w-full bg-gray-100 dark:bg-neutral-900 rounded-xl px-3 py-2">
@@ -553,6 +373,7 @@ export default function ChatRoomsPage() {
           </div>
           <div className="flex-1" />
           <button
+            type="button"
             onClick={() => setShowModal(true)}
             className="flex items-center gap-1.5 px-3 md:px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-black text-sm font-semibold rounded-xl hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors whitespace-nowrap flex-shrink-0"
           >
@@ -562,12 +383,10 @@ export default function ChatRoomsPage() {
         </div>
       </div>
 
-      {/* Two-column body */}
       <div
         className="flex-1 flex flex-col md:flex-row max-w-6xl w-full mx-auto px-4 py-4 gap-4"
         style={{ minHeight: 0 }}
       >
-        {/* LEFT sidebar */}
         <aside
           className={`w-full md:w-72 flex-shrink-0 flex-col ${selected ? "hidden md:flex" : "flex"}`}
         >
@@ -580,11 +399,11 @@ export default function ChatRoomsPage() {
             </p>
           </div>
 
-          {/* Filter pills */}
           <div className="flex items-center bg-gray-100/80 dark:bg-neutral-900 p-1 rounded-xl mb-4 w-full border border-transparent dark:border-neutral-800/50">
             {FILTERS.map(({ key, label, Icon }) => (
               <button
                 key={key}
+                type="button"
                 onClick={() => setFilter(key)}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-1 sm:px-2 rounded-lg text-[13px] font-medium transition-all duration-300 ease-out group
                   ${
@@ -604,13 +423,12 @@ export default function ChatRoomsPage() {
             ))}
           </div>
 
-          {/* Room list */}
           <div className="flex-1 overflow-y-auto pr-1">
             {isLoading ? (
-               <div className="py-20 text-center opacity-40">
-                 <div className="w-8 h-8 border-4 border-gray-900 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                 <p>Loading rooms...</p>
-               </div>
+              <div className="py-20 text-center opacity-40">
+                <div className="w-8 h-8 border-4 border-gray-900 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                <p>Loading rooms...</p>
+              </div>
             ) : visible.length === 0 ? (
               <p className="text-sm text-gray-400 dark:text-gray-500 text-center mt-8">
                 No rooms found.
@@ -623,29 +441,21 @@ export default function ChatRoomsPage() {
                   isSelected={selected?.id === r.id}
                   onSelect={setSelected}
                   onTerminate={handleTerminateRoom}
-                  currentUserId={currentUser?.id}
+                  currentUserId={currentUserId}
                 />
               ))
             )}
           </div>
         </aside>
 
-        {/* Divider */}
         <div className="hidden md:block w-px bg-gray-200 dark:bg-neutral-800 flex-shrink-0 transition-colors duration-500" />
 
-        {/* RIGHT panel */}
         <main
           className={`flex-1 bg-white dark:bg-black rounded-2xl border border-gray-200 dark:border-neutral-800 shadow-sm overflow-hidden flex-col transition-colors duration-500 ${!selected ? "hidden md:flex" : "flex"}`}
           style={{ minHeight: "500px" }}
         >
           {selected ? (
-            <RoomPanel
-              key={selected.id}
-              room={selected}
-              onBack={() => setSelected(null)}
-              onTerminate={handleTerminateRoom}
-              currentUserId={currentUser?.id}
-            />
+            <RoomPanel key={selected.id} room={selected} onBack={() => setSelected(null)} />
           ) : (
             <EmptyState />
           )}
