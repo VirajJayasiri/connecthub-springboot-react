@@ -17,6 +17,7 @@ import FriendChatPanel from "../components/friends/FriendChatPanel";
 import FriendEmptyState from "../components/friends/FriendEmptyState";
 
 const API_BASE = "http://localhost:8080";
+const FRIENDS_PRESENCE = "friends-chat";
 
 const formatTime = (timestamp) => {
   if (!timestamp) return "";
@@ -45,8 +46,14 @@ const FriendsPage = () => {
   const [suggestedError, setSuggestedError] = useState("");
   const [friendsLoading, setFriendsLoading] = useState(true);
   const [friendsError, setFriendsError] = useState("");
+  const [messagesLoadingByFriendId, setMessagesLoadingByFriendId] = useState(
+    {},
+  );
   const [messageError, setMessageError] = useState("");
   const [wsConnected, setWsConnected] = useState(false);
+  const [contextMenu, setContextMenu] = useState(null);
+  const [editingMessageId, setEditingMessageId] = useState(null);
+  const [editingContent, setEditingContent] = useState("");
   const totalUnread = useMemo(
     () => messageFriends.reduce((sum, friend) => sum + (friend.unread || 0), 0),
     [messageFriends],
@@ -79,6 +86,12 @@ const FriendsPage = () => {
   }, [selectedFriend]);
 
   useEffect(() => {
+    setContextMenu(null);
+    setEditingMessageId(null);
+    setEditingContent("");
+  }, [selectedFriend?.id]);
+
+  useEffect(() => {
     suggestedFriendsRef.current = suggestedFriends;
   }, [suggestedFriends]);
 
@@ -95,8 +108,9 @@ const FriendsPage = () => {
 
   const mapSuggestedUser = useCallback((user) => {
     const name = user.fullName || user.username || "User";
+    const id = user.id || user._id || null;
     return {
-      id: user.id,
+      id,
       name,
       avatar: buildAvatar(name, user.profileImage),
       online: Boolean(user.online),
@@ -105,8 +119,9 @@ const FriendsPage = () => {
 
   const mapFriendSummary = useCallback((friend) => {
     const name = friend.fullName || friend.username || "User";
+    const id = friend.id || friend._id || null;
     return {
-      id: friend.id,
+      id,
       name,
       avatar: buildAvatar(name, friend.profileImage),
       online: Boolean(friend.online),
@@ -129,7 +144,9 @@ const FriendsPage = () => {
         headers: authHeaders,
       });
       const users = Array.isArray(response.data) ? response.data : [];
-      setSuggestedFriends(users.map(mapSuggestedUser));
+      setSuggestedFriends(
+        users.map(mapSuggestedUser).filter((user) => user.id),
+      );
     } catch (err) {
       if (err?.response?.status === 401) {
         handleAuthError();
@@ -156,7 +173,7 @@ const FriendsPage = () => {
       const friends = Array.isArray(response.data) ? response.data : [];
       const mapped = friends.map(mapFriendSummary);
       setMessageFriends(mapped);
-      setAddedFriendIds(mapped.map((friend) => friend.id));
+      setAddedFriendIds(mapped.map((friend) => friend.id).filter((id) => id));
     } catch (err) {
       if (err?.response?.status === 401) {
         handleAuthError();
@@ -173,27 +190,89 @@ const FriendsPage = () => {
     fetchFriends();
   }, [fetchSuggested, fetchFriends]);
 
+  const normalizeMessage = useCallback((message) => {
+    if (!message) return null;
+    const content = message.content ?? message.text ?? "";
+    const timestamp =
+      message.timestamp ?? message.time ?? message.createdAt ?? message.sentAt;
+    const messageId =
+      message.id ?? message._id ?? message.messageId ?? message.localId ?? null;
+    return {
+      ...message,
+      id: messageId,
+      messageId,
+      content,
+      timestamp,
+    };
+  }, []);
+
+  const appendMessage = useCallback(
+    (friendId, message, { replacePending = false } = {}) => {
+      const normalized = normalizeMessage(message);
+      if (!normalized || !friendId) return;
+
+      setMessagesByFriendId((prev) => {
+        const existing = prev[friendId] || [];
+        const normalizedId =
+          normalized.id ?? normalized.messageId ?? normalized.localId;
+        const withoutPending = replacePending
+          ? existing.filter(
+              (item) =>
+                !(
+                  item.pending &&
+                  item.senderId === normalized.senderId &&
+                  item.receiverId === normalized.receiverId &&
+                  item.content === normalized.content
+                ),
+            )
+          : existing;
+
+        if (
+          normalizedId &&
+          withoutPending.some(
+            (item) =>
+              (item.id ?? item.messageId ?? item._id ?? item.localId) ===
+              normalizedId,
+          )
+        ) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          [friendId]: [...withoutPending, normalized],
+        };
+      });
+    },
+    [normalizeMessage],
+  );
+
   useEffect(() => {
     if (!token || !currentUserId) return;
 
     const client = new Client({
-      webSocketFactory: () => new SockJS(`${API_BASE}/ws?token=${token}`),
+      webSocketFactory: () =>
+        new SockJS(
+          `${API_BASE}/ws?token=${encodeURIComponent(token)}&presence=${encodeURIComponent(FRIENDS_PRESENCE)}`,
+        ),
+      connectHeaders: {
+        Authorization: `Bearer ${token}`,
+        presence: FRIENDS_PRESENCE,
+      },
       reconnectDelay: 5000,
       onConnect: () => {
         setWsConnected(true);
         setMessageError("");
         client.subscribe("/user/queue/messages", (message) => {
           const payload = JSON.parse(message.body || "{}");
+          const normalizedPayload = normalizeMessage(payload);
+          if (!normalizedPayload) return;
           const otherId =
-            payload.senderId === currentUserId
-              ? payload.receiverId
-              : payload.senderId;
+            normalizedPayload.senderId === currentUserId
+              ? normalizedPayload.receiverId
+              : normalizedPayload.senderId;
 
-          setMessagesByFriendId((prev) => {
-            const existing = prev[otherId] || [];
-            const next = [...existing, payload];
-            return { ...prev, [otherId]: next };
-          });
+          appendMessage(otherId, normalizedPayload, { replacePending: true });
 
           setMessageFriends((prev) => {
             const index = prev.findIndex((friend) => friend.id === otherId);
@@ -203,14 +282,14 @@ const FriendsPage = () => {
                 selectedFriendIdRef.current &&
                 selectedFriendIdRef.current === otherId;
               const unread =
-                payload.senderId === currentUserId
+                normalizedPayload.senderId === currentUserId
                   ? 0
                   : isSelected
                     ? 0
                     : (friend.unread || 0) + 1;
               const updatedFriend = {
                 ...friend,
-                lastMessage: payload.content,
+                lastMessage: normalizedPayload.content,
                 unread,
               };
               return [
@@ -229,8 +308,8 @@ const FriendsPage = () => {
             return [
               {
                 ...suggested,
-                lastMessage: payload.content,
-                unread: payload.senderId === currentUserId ? 0 : 1,
+                lastMessage: normalizedPayload.content,
+                unread: normalizedPayload.senderId === currentUserId ? 0 : 1,
               },
               ...prev,
             ];
@@ -282,7 +361,7 @@ const FriendsPage = () => {
       stompClientRef.current = null;
       client.deactivate();
     };
-  }, [currentUserId, token]);
+  }, [appendMessage, currentUserId, normalizeMessage, token]);
 
   const loadMessages = useCallback(
     async (friendId) => {
@@ -291,6 +370,7 @@ const FriendsPage = () => {
         return;
       }
 
+      setMessagesLoadingByFriendId((prev) => ({ ...prev, [friendId]: true }));
       setMessageError("");
       try {
         const response = await axios.get(
@@ -298,9 +378,12 @@ const FriendsPage = () => {
           { headers: authHeaders },
         );
         const messages = Array.isArray(response.data) ? response.data : [];
+        const normalized = messages
+          .map((message) => normalizeMessage(message))
+          .filter(Boolean);
         setMessagesByFriendId((prev) => ({
           ...prev,
-          [friendId]: messages,
+          [friendId]: normalized,
         }));
         setMessageFriends((prev) =>
           prev.map((friend) =>
@@ -313,9 +396,14 @@ const FriendsPage = () => {
           return;
         }
         setMessageError("Unable to load messages right now.");
+      } finally {
+        setMessagesLoadingByFriendId((prev) => ({
+          ...prev,
+          [friendId]: false,
+        }));
       }
     },
-    [authHeaders, handleAuthError, token],
+    [authHeaders, handleAuthError, normalizeMessage, token],
   );
 
   useEffect(() => {
@@ -344,7 +432,7 @@ const FriendsPage = () => {
   }, [messageFriends, normalizedSearch]);
 
   const handleAddFriend = async (friendId) => {
-    if (addedFriendIds.includes(friendId)) return;
+    if (!friendId || addedFriendIds.includes(friendId)) return;
     if (!token) {
       handleAuthError();
       return;
@@ -390,6 +478,115 @@ const FriendsPage = () => {
     setAppliedSearch(searchTerm);
   };
 
+  const updateConversation = useCallback((friendId, updateFn) => {
+    setMessagesByFriendId((prev) => {
+      const current = prev[friendId] || [];
+      const next = updateFn(current);
+      setMessageFriends((friendsPrev) =>
+        friendsPrev.map((friend) =>
+          friend.id === friendId
+            ? {
+                ...friend,
+                lastMessage: next.length
+                  ? next[next.length - 1].content
+                  : "Start a conversation",
+              }
+            : friend,
+        ),
+      );
+      return { ...prev, [friendId]: next };
+    });
+  }, []);
+
+  const handleMessageContextMenu = (event, message) => {
+    if (!message?.messageId) return;
+    const isOwner =
+      message.sender === "You" || message.senderId === currentUserId;
+    if (!isOwner) return;
+    event.preventDefault();
+    setContextMenu({
+      isOpen: true,
+      x: event.clientX,
+      y: event.clientY,
+      message,
+    });
+  };
+
+  const closeContextMenu = () => {
+    setContextMenu(null);
+  };
+
+  const handleStartEdit = (message) => {
+    if (!message?.messageId) return;
+    setEditingMessageId(message.messageId);
+    setEditingContent(message.text || "");
+    setContextMenu(null);
+  };
+
+  const handleEditCancel = () => {
+    setEditingMessageId(null);
+    setEditingContent("");
+  };
+
+  const handleEditSave = async () => {
+    if (!selectedFriend?.id || !editingMessageId) return;
+    const trimmed = editingContent.trim();
+    if (!trimmed) return;
+
+    try {
+      const response = await axios.put(
+        `${API_BASE}/api/messages/${editingMessageId}`,
+        { content: trimmed },
+        { headers: authHeaders },
+      );
+      const updated = response.data;
+
+      updateConversation(selectedFriend.id, (current) =>
+        current.map((message) =>
+          (message.id || message._id) === updated.id
+            ? { ...message, content: updated.content }
+            : message,
+        ),
+      );
+
+      setEditingMessageId(null);
+      setEditingContent("");
+    } catch (err) {
+      if (err?.response?.status === 401) {
+        handleAuthError();
+        return;
+      }
+      setMessageError("Unable to update the message right now.");
+    }
+  };
+
+  const handleDeleteMessage = async (message) => {
+    if (!selectedFriend?.id || !message?.messageId) return;
+    if (!window.confirm("Delete this message?")) return;
+
+    try {
+      await axios.delete(`${API_BASE}/api/messages/${message.messageId}`, {
+        headers: authHeaders,
+      });
+
+      updateConversation(selectedFriend.id, (current) =>
+        current.filter((item) => (item.id || item._id) !== message.messageId),
+      );
+
+      setContextMenu(null);
+      if (editingMessageId === message.messageId) {
+        setEditingMessageId(null);
+        setEditingContent("");
+      }
+    } catch (err) {
+      if (err?.response?.status === 401) {
+        handleAuthError();
+        return;
+      }
+      setMessageError("Unable to delete the message right now.");
+    }
+  };
+
   const handleSendMessage = () => {
     if (!selectedFriend) return;
     const trimmed = messageInput.trim();
@@ -400,6 +597,17 @@ const FriendsPage = () => {
       setMessageError("Real-time connection is unavailable.");
       return;
     }
+
+    const localMessage = {
+      localId: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      senderId: currentUserId,
+      receiverId: selectedFriend.id,
+      content: trimmed,
+      timestamp: new Date().toISOString(),
+      pending: true,
+    };
+
+    appendMessage(selectedFriend.id, localMessage);
 
     client.publish({
       destination: "/app/chat.send",
@@ -428,8 +636,12 @@ const FriendsPage = () => {
     const rawMessages = messagesByFriendId[selectedFriend.id] || [];
     return rawMessages.map((message) => {
       const isSender = message.senderId === currentUserId;
+      const messageId = message.id || message._id || message.messageId || null;
       return {
-        id: message.id || `${message.senderId}-${message.timestamp}`,
+        id: messageId || `${message.senderId}-${message.timestamp}`,
+        messageId,
+        senderId: message.senderId,
+        receiverId: message.receiverId,
         sender: isSender ? "You" : selectedFriend.name,
         text: message.content,
         time: formatTime(message.timestamp),
@@ -475,14 +687,14 @@ const FriendsPage = () => {
           </p>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-[minmax(320px,420px)_minmax(0,1fr)] gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-[minmax(320px,420px)_minmax(0,1fr)] gap-4 h-[650px] items-stretch">
           <MessageList
             friends={filteredMessageFriends}
             selectedFriendId={selectedFriend?.id}
             onSelect={setSelectedFriend}
           />
 
-          <div className="min-h-[360px]">
+          <div className="h-full min-h-0">
             {friendsLoading ? (
               <div className="h-full min-h-[320px] flex items-center justify-center text-sm text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-neutral-800 rounded-2xl">
                 Loading conversations...
@@ -491,10 +703,21 @@ const FriendsPage = () => {
               <FriendChatPanel
                 friend={selectedFriend}
                 messages={selectedMessages}
+                loading={Boolean(messagesLoadingByFriendId[selectedFriend.id])}
                 messageInput={messageInput}
                 onMessageChange={setMessageInput}
                 onSend={handleSendMessage}
                 scrollAnchorRef={chatEndRef}
+                onMessageContextMenu={handleMessageContextMenu}
+                contextMenu={contextMenu}
+                onCloseContextMenu={closeContextMenu}
+                onStartEdit={handleStartEdit}
+                onDeleteMessage={handleDeleteMessage}
+                editingMessageId={editingMessageId}
+                editingContent={editingContent}
+                onEditChange={setEditingContent}
+                onEditSave={handleEditSave}
+                onEditCancel={handleEditCancel}
               />
             ) : (
               <FriendEmptyState />

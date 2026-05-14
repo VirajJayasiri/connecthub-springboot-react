@@ -1,12 +1,10 @@
 package com.connecthub_springboot_react.service;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -31,84 +29,82 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
-    /**
-     * Stores profile image in S3 when enabled, otherwise under {@code uploads/profiles/}.
-     * Deletes the previous image when it was stored by this app (S3 or local uploads path).
-     */
-    public User updateProfileImage(String email, MultipartFile file) throws IOException {
-        if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("Image file is required");
-        }
-        String contentType = file.getContentType();
-        if (contentType == null || !contentType.startsWith("image/")) {
-            throw new IllegalArgumentException("Only image uploads are allowed for profile pictures");
-        }
-
+    public User updateProfile(
+            String email,
+            String fullName,
+            String newEmail,
+            String bio,
+            String location,
+            String website,
+            MultipartFile profileImage,
+            MultipartFile coverImage
+    ) {
         User user = getByEmail(email);
-        String previous = user.getProfileImage();
-        deletePreviousProfileAsset(previous);
 
-        String imageUrl;
-        if (s3Service.isPresent()) {
-            imageUrl = s3Service.get().uploadFile(file, "profiles");
-        } else {
-            imageUrl = saveProfileImageLocal(file);
+        String normalizedName = normalizeText(fullName);
+        if (normalizedName != null) {
+            user.setFullName(normalizedName);
         }
 
-        user.setProfileImage(imageUrl);
+        String normalizedEmail = normalizeText(newEmail);
+        if (normalizedEmail != null && !normalizedEmail.equalsIgnoreCase(user.getEmail())) {
+            if (userRepository.existsByEmail(normalizedEmail)) {
+                throw new RuntimeException("Email already exists");
+            }
+            user.setEmail(normalizedEmail);
+        }
+
+        if (bio != null) {
+            user.setBio(normalizeText(bio));
+        }
+
+        if (location != null) {
+            user.setLocation(normalizeText(location));
+        }
+
+        if (website != null) {
+            user.setWebsite(normalizeText(website));
+        }
+
+        if (profileImage != null && !profileImage.isEmpty()) {
+            user.setProfileImage(storeFile(profileImage));
+        }
+
+        if (coverImage != null && !coverImage.isEmpty()) {
+            user.setCoverImage(storeFile(coverImage));
+        }
+
         return userRepository.save(user);
     }
 
-    private void deletePreviousProfileAsset(String previous) {
-        if (previous == null || previous.isBlank()) {
-            return;
+    private String normalizeText(String value) {
+        if (value == null) {
+            return null;
         }
-        if (previous.contains("ui-avatars.com")) {
-            return;
-        }
-        if (s3Service.isPresent() && previous.contains(".amazonaws.com/")) {
-            s3Service.get().deleteFile(previous);
-            return;
-        }
-        if (previous.contains("/uploads/")) {
-            deleteLocalUploadsFile(previous);
-        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
-    private void deleteLocalUploadsFile(String mediaUrl) {
-        int idx = mediaUrl.indexOf("/uploads/");
-        if (idx < 0) {
-            return;
-        }
-        String relative = mediaUrl.substring(idx + "/uploads/".length());
-        if (relative.isEmpty() || relative.contains("..")) {
-            return;
-        }
+    private String storeFile(MultipartFile file) {
         try {
-            Path base = Paths.get("uploads").toAbsolutePath().normalize();
-            Path target = base.resolve(relative).normalize();
-            if (!target.startsWith(base)) {
-                return;
+            Path uploadDir = Paths.get("uploads");
+            if (!Files.exists(uploadDir)) {
+                Files.createDirectories(uploadDir);
             }
-            Files.deleteIfExists(target);
-        } catch (IOException ignored) {
-            // best-effort
-        }
-    }
 
-    private String saveProfileImageLocal(MultipartFile file) throws IOException {
-        Path dir = Paths.get("uploads", "profiles");
-        Files.createDirectories(dir);
-        String originalFilename = file.getOriginalFilename();
-        String extension = "";
-        if (originalFilename != null && originalFilename.contains(".")) {
-            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            String originalFilename = file.getOriginalFilename();
+            String extension = "";
+            if (originalFilename != null && originalFilename.contains(".")) {
+                extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            }
+
+            String filename = UUID.randomUUID().toString() + extension;
+            Path filePath = uploadDir.resolve(filename);
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            return "http://localhost:8080/uploads/" + filename;
+        } catch (IOException ex) {
+            throw new RuntimeException("Failed to store file", ex);
         }
-        String fileName = UUID.randomUUID().toString() + extension;
-        Path target = dir.resolve(fileName);
-        try (InputStream in = file.getInputStream()) {
-            Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
-        }
-        return "/uploads/profiles/" + fileName;
     }
 }

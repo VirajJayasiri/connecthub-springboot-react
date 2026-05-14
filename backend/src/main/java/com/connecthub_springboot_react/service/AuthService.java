@@ -1,15 +1,18 @@
 package com.connecthub_springboot_react.service;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
 import com.connecthub_springboot_react.dto.AuthResponse;
 import com.connecthub_springboot_react.dto.LoginRequest;
 import com.connecthub_springboot_react.dto.RegisterRequest;
 import com.connecthub_springboot_react.model.User;
+import com.connecthub_springboot_react.repository.ChatMessageRepository;
+import com.connecthub_springboot_react.repository.FriendRelationRepository;
 import com.connecthub_springboot_react.repository.UserRepository;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 @Service
 public class AuthService {
@@ -17,11 +20,21 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final FriendRelationRepository friendRelationRepository;
+    private final ChatMessageRepository chatMessageRepository;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
+    public AuthService(
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService,
+            FriendRelationRepository friendRelationRepository,
+            ChatMessageRepository chatMessageRepository
+    ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.friendRelationRepository = friendRelationRepository;
+        this.chatMessageRepository = chatMessageRepository;
     }
 
     public AuthResponse register(RegisterRequest request) {
@@ -61,7 +74,24 @@ public class AuthService {
         userMap.put("username", user.getUsername());
         userMap.put("email", user.getEmail());
         userMap.put("profileImage", user.getProfileImage());
+        userMap.put("coverImage", user.getCoverImage());
+        userMap.put("bio", user.getBio());
+        userMap.put("location", user.getLocation());
+        userMap.put("website", user.getWebsite());
 
         return new AuthResponse("Login successful", token, userMap);
+    }
+
+    public void deleteAccount(String email, String password) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new RuntimeException("Invalid password");
+        }
+
+        friendRelationRepository.deleteByUserIdOrFriendId(user.getId(), user.getId());
+        chatMessageRepository.deleteBySenderIdOrReceiverId(user.getId(), user.getId());
+        userRepository.delete(user);
     }
 }
