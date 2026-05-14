@@ -122,4 +122,28 @@ public class AuthController {
         profile.put("website", user.getWebsite());
         return profile;
     }
+
+    /**
+     * POST /api/auth/me/profile-image — multipart field {@code file} (image/*). Stores in S3 when enabled, else uploads/profiles.
+     */
+    @PostMapping(value = "/me/profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> updateProfileImage(
+            Authentication authentication,
+            @RequestParam("file") MultipartFile file
+    ) throws IOException {
+        try {
+            User user = userService.updateProfileImage(authentication.getName(), file);
+
+            Map<String, Object> profile = new LinkedHashMap<>();
+            profile.put("_id", user.getId());
+            profile.put("fullName", user.getFullName());
+            profile.put("username", user.getUsername());
+            profile.put("email", user.getEmail());
+            profile.put("profileImage", user.getProfileImage());
+
+            return ResponseEntity.ok(profile);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
+        }
+    }
 }

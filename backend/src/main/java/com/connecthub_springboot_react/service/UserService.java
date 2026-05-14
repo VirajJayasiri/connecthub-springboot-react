@@ -17,9 +17,11 @@ import com.connecthub_springboot_react.repository.UserRepository;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final Optional<S3Service> s3Service;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, Optional<S3Service> s3Service) {
         this.userRepository = userRepository;
+        this.s3Service = s3Service;
     }
 
     public User getByEmail(String email) {

@@ -24,7 +24,7 @@ const StatCard = ({ value, label }) => (
 );
 
 /* ─── Edit Profile Modal ─────────────────────────────────────── */
-const EditProfileModal = ({ user, onSave, onClose }) => {
+const EditProfileModal = ({ user, onSave, onClose, onProfileImageUpdated }) => {
   const [form, setForm] = useState({
     name: user.fullName || "",
     email: user.email || "",
@@ -172,6 +172,13 @@ const EditProfileModal = ({ user, onSave, onClose }) => {
 
           {/* Avatar preview */}
           <div className="flex items-center gap-4">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handlePhotoSelect}
+            />
             <div className="relative">
               <img
                 src={avatarUrl}
@@ -183,7 +190,11 @@ const EditProfileModal = ({ user, onSave, onClose }) => {
                 onClick={() => profileInputRef.current?.click()}
                 className="absolute -bottom-1 -right-1 w-7 h-7 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full flex items-center justify-center hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors"
               >
-                <Camera size={13} />
+                {uploadingPhoto ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <Camera size={13} />
+                )}
               </button>
               <input
                 ref={profileInputRef}
@@ -429,6 +440,19 @@ const ProfilePage = () => {
     localStorage.setItem("user", JSON.stringify(updatedUser));
   };
 
+  const handleProfileImageUpdated = (url) => {
+    setUser((prev) => (prev ? { ...prev, profileImage: url } : prev));
+    try {
+      const raw = localStorage.getItem('user');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        localStorage.setItem('user', JSON.stringify({ ...parsed, profileImage: url }));
+      }
+    } catch {
+      /* ignore */
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -609,6 +633,7 @@ const ProfilePage = () => {
           user={user}
           onSave={handleSave}
           onClose={() => setIsEditing(false)}
+          onProfileImageUpdated={handleProfileImageUpdated}
         />
       )}
 

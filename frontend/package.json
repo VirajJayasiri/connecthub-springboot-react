@@ -10,15 +10,20 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@livekit/components-react": "^2.9.21",
+    "@livekit/components-styles": "^1.2.0",
     "@stomp/stompjs": "^7.3.0",
     "@tailwindcss/vite": "^4.2.4",
     "axios": "^1.16.0",
+    "clsx": "^2.1.1",
     "framer-motion": "^12.38.0",
+    "livekit-client": "^2.19.0",
     "lucide-react": "^1.14.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-router-dom": "^7.14.2",
     "sockjs-client": "^1.6.1",
+    "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.2.4"
   },
   "devDependencies": {

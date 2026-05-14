@@ -4,6 +4,7 @@ import API from '../services/api';
 import {
   Image,
   Video,
+  Mic,
   Send,
   Trash2,
   X,
@@ -49,7 +50,7 @@ const CreatePostCard = ({ currentUser, onPostCreated }) => {
   const [caption, setCaption] = useState('');
   const [mediaFile, setMediaFile] = useState(null);
   const [mediaPreview, setMediaPreview] = useState(null);
-  const [isVideo, setIsVideo] = useState(false);
+  const [mediaKind, setMediaKind] = useState(null);
   const [posting, setPosting] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -58,7 +59,8 @@ const CreatePostCard = ({ currentUser, onPostCreated }) => {
     if (!file) return;
 
     const isVid = file.type.startsWith('video');
-    setIsVideo(isVid);
+    const isAud = file.type.startsWith('audio');
+    setMediaKind(isVid ? 'video' : isAud ? 'audio' : 'image');
     setMediaFile(file);
     setMediaPreview(URL.createObjectURL(file));
   };
@@ -67,7 +69,7 @@ const CreatePostCard = ({ currentUser, onPostCreated }) => {
     if (mediaPreview) URL.revokeObjectURL(mediaPreview);
     setMediaFile(null);
     setMediaPreview(null);
-    setIsVideo(false);
+    setMediaKind(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -112,8 +114,10 @@ const CreatePostCard = ({ currentUser, onPostCreated }) => {
 
       {mediaPreview && (
         <div className="media-preview-container">
-          {isVideo ? (
+          {mediaKind === 'video' ? (
             <video src={mediaPreview} controls className="w-full" />
+          ) : mediaKind === 'audio' ? (
+            <audio src={mediaPreview} controls className="w-full" />
           ) : (
             <img src={mediaPreview} alt="Preview" />
           )}
@@ -128,7 +132,7 @@ const CreatePostCard = ({ currentUser, onPostCreated }) => {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*,video/*"
+            accept="image/*,video/*,audio/*"
             className="hidden"
             onChange={handleFileSelect}
           />
@@ -153,6 +157,17 @@ const CreatePostCard = ({ currentUser, onPostCreated }) => {
             }}
           >
             <Video size={16} /> Video
+          </button>
+          <button
+            className="attach-btn"
+            onClick={() => {
+              if (fileInputRef.current) {
+                fileInputRef.current.accept = 'audio/*';
+                fileInputRef.current.click();
+              }
+            }}
+          >
+            <Mic size={16} /> Audio
           </button>
         </div>
         <button
@@ -295,6 +310,11 @@ const PostCard = ({ post, currentUserId, onUpdatePost, onDeletePost }) => {
       )}
       {post.mediaType === 'VIDEO' && post.mediaUrl && (
         <video src={post.mediaUrl} controls className="post-media" />
+      )}
+      {post.mediaType === 'AUDIO' && post.mediaUrl && (
+        <div className="px-4 pb-2">
+          <audio src={post.mediaUrl} controls className="w-full" />
+        </div>
       )}
 
       <div className="px-4 py-3 flex items-center justify-between">
