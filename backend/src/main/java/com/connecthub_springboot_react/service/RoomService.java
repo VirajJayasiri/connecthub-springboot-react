@@ -1,5 +1,6 @@
 package com.connecthub_springboot_react.service;
 
+<<<<<<< Updated upstream
 import com.connecthub_springboot_react.dto.room.*;
 import com.connecthub_springboot_react.model.User;
 import com.connecthub_springboot_react.model.room.*;
@@ -16,10 +17,22 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+=======
+import com.connecthub_springboot_react.config.LiveKitConfig;
+import com.connecthub_springboot_react.model.ChatRoom;
+import com.connecthub_springboot_react.repository.ChatRoomRepository;
+import io.livekit.server.AccessToken;
+import io.livekit.server.VideoGrant;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
+>>>>>>> Stashed changes
 
 @Service
 public class RoomService {
 
+<<<<<<< Updated upstream
     public static final String EVENT_CHAT = "CHAT_MESSAGE";
     public static final String EVENT_STATE = "ROOM_STATE";
     public static final String EVENT_LIVEKIT_REFRESH = "LIVEKIT_REFRESH";
@@ -337,5 +350,44 @@ public class RoomService {
                 .map(u -> u.getFullName() != null && !u.getFullName().isBlank() ? u.getFullName() : u.getUsername())
                 .orElse(r.getUserId());
         return new StageRequestViewDto(r.getId(), r.getUserId(), display);
+=======
+    private final LiveKitConfig liveKitConfig;
+    private final ChatRoomRepository chatRoomRepository;
+
+    public RoomService(LiveKitConfig liveKitConfig, ChatRoomRepository chatRoomRepository) {
+        this.liveKitConfig = liveKitConfig;
+        this.chatRoomRepository = chatRoomRepository;
+    }
+
+    public String createToken(String roomName, String identity, String name, boolean canPublish) {
+        AccessToken token = new AccessToken(liveKitConfig.getApiKey(), liveKitConfig.getApiSecret());
+        token.setName(name);
+        token.setIdentity(identity);
+        
+        VideoGrant grant = new VideoGrant();
+        grant.setRoomJoin(true);
+        grant.setRoom(roomName);
+        grant.setCanPublish(canPublish);
+        grant.setCanSubscribe(true);
+        
+        token.addGrant(grant);
+        return token.toJwt();
+    }
+
+    public List<ChatRoom> getAllRooms() {
+        return chatRoomRepository.findAllByOrderByCreatedAtDesc();
+    }
+
+    public ChatRoom saveRoom(ChatRoom room) {
+        return chatRoomRepository.save(room);
+    }
+
+    public Optional<ChatRoom> getRoomById(String id) {
+        return chatRoomRepository.findById(id);
+    }
+
+    public void deleteRoom(String id) {
+        chatRoomRepository.deleteById(id);
+>>>>>>> Stashed changes
     }
 }
