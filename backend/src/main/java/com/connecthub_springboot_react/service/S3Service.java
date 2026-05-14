@@ -1,6 +1,7 @@
 package com.connecthub_springboot_react.service;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -11,6 +12,7 @@ import java.io.IOException;
 import java.util.UUID;
 
 @Service
+@ConditionalOnProperty(name = "aws.s3.enabled", havingValue = "true")
 public class S3Service {
 
     private final S3Client s3Client;

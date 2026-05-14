@@ -80,6 +80,13 @@
 			<artifactId>s3</artifactId>
 			<version>2.20.103</version>
 		</dependency>
+
+		<!-- LiveKit access tokens for Docker dev server (LIVEKIT_KEYS) -->
+		<dependency>
+			<groupId>io.livekit</groupId>
+			<artifactId>livekit-server</artifactId>
+			<version>0.12.1</version>
+		</dependency>
 	</dependencies>
 
 	<build>

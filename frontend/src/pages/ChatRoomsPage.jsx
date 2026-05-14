@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import AppNavbar from "../components/common/AppNavbar";
+import RoomPanel from "../components/chat/RoomPanel";
 import {
   Search,
   Plus,
@@ -9,65 +10,10 @@ import {
   Video,
   Hash,
   Users,
-  ArrowLeft,
-  Send,
   Lock,
   Globe,
-  Monitor,
 } from "lucide-react";
-import VoiceRoom from "../components/chat/VoiceRoom";
-
-/* ─── Mock data ─────────────────────────────────────────────── */
-const ROOMS = [
-  {
-    id: 1,
-    name: "Web Development",
-    type: "text",
-    description: "Discuss all things web dev - React, Vue, Angular, and more",
-    members: 245,
-    lastActive: "2 weeks ago",
-  },
-  {
-    id: 2,
-    name: "Photography Lovers",
-    type: "text",
-    description: "Share your best shots and photography tips",
-    members: 189,
-    lastActive: "1 month ago",
-  },
-  {
-    id: 3,
-    name: "Gaming Voice Chat",
-    type: "voice",
-    description: "Voice chat for gamers – drop in and chat while playing",
-    members: 47,
-    lastActive: "3 weeks ago",
-  },
-  {
-    id: 4,
-    name: "Music Jam Session",
-    type: "voice",
-    description: "Live music collaboration and jamming",
-    members: 15,
-    lastActive: "5 days ago",
-  },
-  {
-    id: 5,
-    name: "Study Together",
-    type: "video",
-    description: "Video study sessions – stay motivated while learning",
-    members: 28,
-    lastActive: "1 week ago",
-  },
-  {
-    id: 6,
-    name: "Team Standup",
-    type: "video",
-    description: "Daily team video standup meetings",
-    members: 12,
-    lastActive: "2 days ago",
-  },
-];
+import { fetchRooms, createRoomApi } from "../services/roomsApi";
 
 const TYPE_ICON = { text: MessageSquare, voice: Mic, video: Video };
 const TYPE_LABEL = {
@@ -141,158 +87,6 @@ const EmptyState = () => (
   </div>
 );
 
-const RoomPanel = ({ room, onBack }) => {
-  const Icon = TYPE_ICON[room.type];
-  const [isJoined, setIsJoined] = useState(false);
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      sender: "Avery",
-      text: "Welcome everyone! Share your latest tips.",
-      time: "9:12 AM",
-    },
-    {
-      id: 2,
-      sender: "Jordan",
-      text: "Just shipped a new React layout for a client.",
-      time: "9:15 AM",
-    },
-  ]);
-  const [text, setText] = useState("");
-
-  const send = () => {
-    const trimmed = text.trim();
-    if (!trimmed || room.type !== "text") return;
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        sender: "You",
-        text: trimmed,
-        time: new Date().toLocaleTimeString([], {
-          hour: "numeric",
-          minute: "2-digit",
-        }),
-      },
-    ]);
-    setText("");
-  };
-
-  if (isJoined && (room.type === "voice" || room.type === "video")) {
-    return <VoiceRoom room={room} onLeave={() => setIsJoined(false)} />;
-  }
-
-  return (
-    <div className="flex flex-col h-full bg-white dark:bg-[#050505] transition-colors duration-500">
-      <div className="px-4 md:px-6 py-3 md:py-4 border-b border-gray-200 dark:border-neutral-800 bg-white dark:bg-black transition-colors duration-500">
-        <div className="flex items-center gap-2">
-          {onBack && (
-            <button
-              onClick={onBack}
-              className="md:hidden p-1.5 -ml-2 mr-1 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors flex-shrink-0"
-            >
-              <ArrowLeft size={18} />
-            </button>
-          )}
-          <Icon
-            size={16}
-            className="text-gray-400 dark:text-gray-500 flex-shrink-0"
-          />
-          <h2 className="font-bold text-gray-900 dark:text-gray-100 text-base md:text-lg truncate">
-            {room.name}
-          </h2>
-          <span className="text-xs px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 ml-1 whitespace-nowrap hidden sm:inline-block">
-            {TYPE_LABEL[room.type]}
-          </span>
-        </div>
-        <p className="text-sm text-gray-400 dark:text-gray-500 mt-1 line-clamp-1">
-          {room.description}
-        </p>
-        <span className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 mt-1">
-          <Users size={12} /> {room.members} members
-        </span>
-      </div>
-
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 space-y-3">
-        {room.type === "text" ? (
-          messages.map((m) => (
-            <div
-              key={m.id}
-              className={`flex gap-3 ${m.sender === "You" ? "flex-row-reverse" : ""}`}
-            >
-              <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex-shrink-0 flex items-center justify-center text-xs font-bold text-gray-500 dark:text-gray-400">
-                {m.sender[0]}
-              </div>
-              <div
-                className={`max-w-xs ${m.sender === "You" ? "items-end" : ""} flex flex-col`}
-              >
-                <span className="text-xs text-gray-400 dark:text-gray-500 mb-1">
-                  {m.sender} · {m.time}
-                </span>
-                <div
-                  className={`px-3 py-2 rounded-xl text-sm ${m.sender === "You" ? "bg-gray-900 dark:bg-white text-white dark:text-black" : "bg-gray-100 dark:bg-neutral-900 text-gray-800 dark:text-gray-200"}`}
-                >
-                  {m.text}
-                </div>
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full text-center px-4">
-            <div className="w-20 h-20 rounded-full mb-6 flex items-center justify-center shadow-inner bg-gray-100 dark:bg-neutral-900 text-gray-800 dark:text-gray-200 transition-colors duration-500">
-              <Icon size={40} strokeWidth={1.5} />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-              {room.type === "voice" ? "Voice Channel" : "Video Channel"}
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mb-8 leading-relaxed">
-              {room.type === "voice"
-                ? "Join this voice channel to talk with other members in real-time. Make sure your microphone is connected."
-                : "Join this video channel to collaborate face-to-face. Make sure your camera and microphone are ready."}
-            </p>
-            <button 
-              onClick={() => setIsJoined(true)}
-              className="flex items-center gap-2.5 px-6 py-3 rounded-xl font-semibold text-white transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm bg-gray-900 dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 ring-gray-900/20 hover:ring-4"
-            >
-              <Icon size={18} strokeWidth={2} />
-              Join {room.type === "voice" ? "Voice" : "Video"} Room
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Input */}
-      <div className="px-3 md:px-4 py-3 border-t border-gray-200 dark:border-neutral-800 bg-white dark:bg-black transition-colors duration-500">
-        <div className="flex items-center gap-2 bg-gray-100 dark:bg-neutral-900 rounded-xl px-3 md:px-4 py-2">
-          <input
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && send()}
-            className="flex-1 bg-transparent text-sm text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 outline-none"
-            placeholder={
-              room.type === "text"
-                ? `Message #${room.name}...`
-                : "Text messaging is unavailable in this room"
-            }
-            disabled={room.type !== "text"}
-          />
-          {room.type === "text" && (
-            <button
-              onClick={send}
-              disabled={!text.trim()}
-              className="p-1.5 bg-gray-900 dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:hover:bg-gray-900 dark:disabled:hover:bg-white"
-              title="Send message"
-            >
-              <Send size={18} />
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const CreateModal = ({ onClose, onCreate }) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -354,12 +148,21 @@ const CreateModal = ({ onClose, onCreate }) => {
                 {[
                   { id: "text", label: "Text Chat", sub: "Send messages", Icon: MessageSquare },
                   { id: "voice", label: "Voice Chat", sub: "Talk with audio", Icon: Mic },
-                  { id: "video", label: "Video Chat", sub: "Video calls", Icon: Video },
+                  {
+                    id: "video",
+                    label: "Video Chat",
+                    sub: "Coming soon",
+                    Icon: Video,
+                    disabled: true,
+                  },
                 ].map((t) => (
                   <button
                     key={t.id}
-                    onClick={() => setType(t.id)}
+                    type="button"
+                    disabled={t.disabled}
+                    onClick={() => !t.disabled && setType(t.id)}
                     className={`w-full flex items-center gap-4 p-3 rounded-2xl border transition-all duration-300 text-left
+                      ${t.disabled ? "opacity-40 cursor-not-allowed" : ""}
                       ${type === t.id ? "bg-gray-900 dark:bg-white text-white dark:text-black border-transparent" : "bg-white dark:bg-neutral-800 border-gray-100 dark:border-neutral-800 text-gray-600 dark:text-gray-400 hover:border-gray-200"}`}
                   >
                     <div className={`p-2 rounded-xl ${type === t.id ? "bg-white/10 dark:bg-black/5" : "bg-gray-100 dark:bg-neutral-700"}`}>
@@ -422,23 +225,51 @@ export default function ChatRoomsPage() {
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [rooms, setRooms] = useState(ROOMS);
+  const [rooms, setRooms] = useState([]);
+  const [loadError, setLoadError] = useState(null);
 
-  const handleCreateRoom = ({ name, description, type }) => {
-    const newRoom = {
-      id: Date.now(),
-      name,
-      description,
-      type,
-      members: 1,
-      lastActive: "Just now",
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await fetchRooms();
+        if (!cancelled) {
+          setRooms(list);
+          setLoadError(null);
+        }
+      } catch (e) {
+        console.error(e);
+        if (!cancelled) {
+          setLoadError("Could not load rooms. Is the backend running and are you logged in?");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
     };
+  }, []);
 
-    setRooms((prev) => [newRoom, ...prev]);
-    setSelected(newRoom);
-    setFilter(type);
-    setSearch("");
-    setShowModal(false);
+  const handleCreateRoom = async ({ name, description, type }) => {
+    if (type === "video") {
+      setLoadError("Video rooms are not enabled yet.");
+      return;
+    }
+    try {
+      const newRoom = await createRoomApi({ name, description, type });
+      setRooms((prev) => [newRoom, ...prev]);
+      setSelected(newRoom);
+      setFilter(type);
+      setSearch("");
+      setShowModal(false);
+      setLoadError(null);
+    } catch (e) {
+      console.error(e);
+      const msg =
+        e?.response?.data?.message ||
+        e?.message ||
+        "Could not create room (check room type and login).";
+      setLoadError(String(msg));
+    }
   };
 
   const visible = useMemo(() => {
@@ -455,6 +286,12 @@ export default function ChatRoomsPage() {
   return (
     <div className="app-page flex flex-col">
       <AppNavbar />
+
+      {loadError && (
+        <div className="max-w-6xl mx-auto px-4 py-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border-b border-red-100 dark:border-red-900">
+          {loadError}
+        </div>
+      )}
 
       {/* Search + Create bar */}
       <div className="bg-white dark:bg-black border-b border-gray-200 dark:border-neutral-800 transition-colors duration-500">

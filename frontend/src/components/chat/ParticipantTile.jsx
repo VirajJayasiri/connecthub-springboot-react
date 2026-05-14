@@ -14,8 +14,16 @@ export default function ParticipantTile({
 }) {
   const { name, role, isMuted, isSpeaking, avatar } = participant;
 
-  const RoleIcon = role === "host" ? Crown : role === "admin" ? Shield : User;
-  const roleColor = role === "host" ? "text-yellow-500" : role === "admin" ? "text-blue-500" : "text-gray-400";
+  const RoleIcon =
+    role === "host" ? Crown : role === "admin" ? Shield : role === "speaker" ? Mic : User;
+  const roleColor =
+    role === "host"
+      ? "text-yellow-500"
+      : role === "admin"
+        ? "text-blue-500"
+        : role === "speaker"
+          ? "text-emerald-500"
+          : "text-gray-400";
 
   return (
     <div className={cn(

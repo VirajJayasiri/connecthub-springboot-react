@@ -5,12 +5,15 @@ import java.time.Instant;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.UUID;
+import java.nio.file.StandardCopyOption;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -32,9 +35,9 @@ public class PostService {
 
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
-    private final S3Service s3Service;
+    private final Optional<S3Service> s3Service;
 
-    public PostService(PostRepository postRepository, CommentRepository commentRepository, S3Service s3Service) {
+    public PostService(PostRepository postRepository, CommentRepository commentRepository, Optional<S3Service> s3Service) {
         this.postRepository = postRepository;
         this.commentRepository = commentRepository;
         this.s3Service = s3Service;
@@ -68,10 +71,15 @@ public class PostService {
             }
             
             try {
-                String mediaUrl = s3Service.uploadFile(media);
+                String mediaUrl;
+                if (s3Service.isPresent()) {
+                    mediaUrl = s3Service.get().uploadFile(media);
+                } else {
+                    mediaUrl = saveMediaLocal(media);
+                }
                 post.setMediaUrl(mediaUrl);
             } catch (IOException e) {
-                throw new RuntimeException("Failed to upload file to S3", e);
+                throw new RuntimeException("Failed to upload media", e);
             }
         }
 
@@ -134,7 +142,11 @@ public class PostService {
         }
 
         if (post.getMediaUrl() != null) {
-            s3Service.deleteFile(post.getMediaUrl());
+            if (s3Service.isPresent()) {
+                s3Service.get().deleteFile(post.getMediaUrl());
+            } else {
+                deleteMediaLocal(post.getMediaUrl());
+            }
         }
 
         commentRepository.deleteAllByPostId(postId);
@@ -217,6 +229,43 @@ public class PostService {
         dto.setCurrentUserReaction(currentUserReaction);
 
         return dto;
+    }
+
+    private String saveMediaLocal(MultipartFile media) throws IOException {
+        Path dir = Paths.get("uploads");
+        Files.createDirectories(dir);
+        String originalFilename = media.getOriginalFilename();
+        String extension = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+        String fileName = UUID.randomUUID().toString() + extension;
+        Path target = dir.resolve(fileName);
+        try (var in = media.getInputStream()) {
+            Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+        }
+        return "/uploads/" + fileName;
+    }
+
+    private void deleteMediaLocal(String mediaUrl) {
+        if (mediaUrl == null || !mediaUrl.contains("/uploads/")) {
+            return;
+        }
+        int idx = mediaUrl.indexOf("/uploads/");
+        String relative = mediaUrl.substring(idx + "/uploads/".length());
+        if (relative.isEmpty() || relative.contains("..")) {
+            return;
+        }
+        try {
+            Path base = Paths.get("uploads").toAbsolutePath().normalize();
+            Path target = base.resolve(relative).normalize();
+            if (!target.startsWith(base)) {
+                return;
+            }
+            Files.deleteIfExists(target);
+        } catch (IOException ignored) {
+            // best-effort cleanup
+        }
     }
 
     private CommentDto toCommentDto(Comment comment) {
