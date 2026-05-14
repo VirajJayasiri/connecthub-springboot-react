@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -77,6 +78,26 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    /**
+     * Updates only the profile image for the user identified by {@code email}.
+     * Uses S3 when configured, otherwise {@code uploads/profiles/} on disk.
+     */
+    public User updateProfileImage(String email, MultipartFile file) throws IOException {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("File is required");
+        }
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new IllegalArgumentException("Only image uploads are supported");
+        }
+        User user = getByEmail(email);
+        String url = s3Service.isPresent()
+                ? s3Service.get().uploadFile(file, "profiles")
+                : storeFileUnderRelativeDir(file, "profiles");
+        user.setProfileImage(url);
+        return userRepository.save(user);
+    }
+
     private String normalizeText(String value) {
         if (value == null) {
             return null;
@@ -87,24 +108,31 @@ public class UserService {
 
     private String storeFile(MultipartFile file) {
         try {
-            Path uploadDir = Paths.get("uploads");
-            if (!Files.exists(uploadDir)) {
-                Files.createDirectories(uploadDir);
-            }
-
-            String originalFilename = file.getOriginalFilename();
-            String extension = "";
-            if (originalFilename != null && originalFilename.contains(".")) {
-                extension = originalFilename.substring(originalFilename.lastIndexOf("."));
-            }
-
-            String filename = UUID.randomUUID().toString() + extension;
-            Path filePath = uploadDir.resolve(filename);
-            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-            return "http://localhost:8080/uploads/" + filename;
+            return storeFileUnderRelativeDir(file);
         } catch (IOException ex) {
             throw new RuntimeException("Failed to store file", ex);
         }
+    }
+
+    private String storeFileUnderRelativeDir(MultipartFile file, String... relativePathSegments) throws IOException {
+        Path uploadDir = Paths.get("uploads", relativePathSegments);
+        if (!Files.exists(uploadDir)) {
+            Files.createDirectories(uploadDir);
+        }
+
+        String originalFilename = file.getOriginalFilename();
+        String extension = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+
+        String filename = UUID.randomUUID().toString() + extension;
+        Path filePath = uploadDir.resolve(filename);
+        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+        String pathSuffix = relativePathSegments.length == 0
+                ? filename
+                : String.join("/", relativePathSegments) + "/" + filename;
+        return "http://localhost:8080/uploads/" + pathSuffix;
     }
 }

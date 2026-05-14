@@ -172,13 +172,6 @@ const EditProfileModal = ({ user, onSave, onClose, onProfileImageUpdated }) => {
 
           {/* Avatar preview */}
           <div className="flex items-center gap-4">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handlePhotoSelect}
-            />
             <div className="relative">
               <img
                 src={avatarUrl}
@@ -190,11 +183,7 @@ const EditProfileModal = ({ user, onSave, onClose, onProfileImageUpdated }) => {
                 onClick={() => profileInputRef.current?.click()}
                 className="absolute -bottom-1 -right-1 w-7 h-7 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full flex items-center justify-center hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors"
               >
-                {uploadingPhoto ? (
-                  <Loader2 size={13} className="animate-spin" />
-                ) : (
-                  <Camera size={13} />
-                )}
+                <Camera size={13} />
               </button>
               <input
                 ref={profileInputRef}
@@ -412,6 +401,7 @@ const ProfilePage = () => {
       const token = localStorage.getItem("token");
 
       if (!token) {
+        setLoading(false);
         navigate("/login", { replace: true });
         return;
       }

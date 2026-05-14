@@ -464,17 +464,15 @@ const PostsPage = () => {
     } catch (err) {
       console.error('Failed to fetch posts:', err);
     } finally {
-      setLoading(false);
+      if (pageNumber === 0) {
+        setLoading(false);
+      }
       setLoadingMore(false);
     }
   };
 
   useEffect(() => {
-    const init = async () => {
-      await fetchCurrentUser();
-      await fetchPosts(0);
-    };
-    init();
+    void Promise.allSettled([fetchCurrentUser(), fetchPosts(0)]);
   }, []);
 
   // Infinite scroll listener

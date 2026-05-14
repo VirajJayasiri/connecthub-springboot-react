@@ -1,0 +1,16 @@
+{"sessionId":"73341a","location":"api.js:response","message":"api_ok","data":{"url":"/rooms","status":200,"ms":4148},"hypothesisId":"A","timestamp":1778769258394}
+{"sessionId":"73341a","location":"api.js:response","message":"api_ok","data":{"url":"/rooms","status":200,"ms":7814},"hypothesisId":"A","timestamp":1778769262061}
+{"sessionId":"73341a","location":"api.js:response","message":"api_ok","data":{"url":"/rooms","status":200,"ms":7246},"hypothesisId":"A","timestamp":1778769265817}
+{"sessionId":"73341a","location":"api.js:response","message":"api_ok","data":{"url":"/rooms","status":200,"ms":11281},"hypothesisId":"A","timestamp":1778769269852}
+{"sessionId":"73341a","location":"PostsPage.jsx:init","message":"posts_init_start","data":{},"hypothesisId":"D","timestamp":1778769313902}
+{"sessionId":"73341a","location":"PostsPage.jsx:init","message":"posts_init_start","data":{},"hypothesisId":"D","timestamp":1778769313906}
+{"sessionId":"73341a","location":"api.js:response","message":"api_ok","data":{"url":"/auth/me","status":200,"ms":227},"hypothesisId":"A","timestamp":1778769314135}
+{"sessionId":"73341a","location":"api.js:response","message":"api_ok","data":{"url":"/posts?page=0&size=10","status":200,"ms":443},"hypothesisId":"A","timestamp":1778769314351}
+{"sessionId":"73341a","location":"PostsPage.jsx:init","message":"posts_init_settled","data":{},"hypothesisId":"D","timestamp":1778769314352}
+{"sessionId":"73341a","location":"api.js:response","message":"api_ok","data":{"url":"/auth/me","status":200,"ms":485},"hypothesisId":"A","timestamp":1778769314394}
+{"sessionId":"73341a","location":"api.js:response","message":"api_ok","data":{"url":"/posts?page=0&size=10","status":200,"ms":851},"hypothesisId":"A","timestamp":1778769314760}
+{"sessionId":"73341a","location":"PostsPage.jsx:init","message":"posts_init_settled","data":{},"hypothesisId":"D","timestamp":1778769314761}
+{"sessionId":"73341a","location":"api.js:response","message":"api_ok","data":{"url":"/rooms","status":200,"ms":3746},"hypothesisId":"A","timestamp":1778769314790}
+{"sessionId":"73341a","location":"api.js:response","message":"api_ok","data":{"url":"/rooms","status":200,"ms":7457},"hypothesisId":"A","timestamp":1778769318501}
+{"sessionId":"73341a","location":"api.js:response","message":"api_ok","data":{"url":"/rooms","status":200,"ms":6724},"hypothesisId":"A","timestamp":1778769322726}
+{"sessionId":"73341a","location":"api.js:response","message":"api_ok","data":{"url":"/rooms","status":200,"ms":10440},"hypothesisId":"A","timestamp":1778769326443}

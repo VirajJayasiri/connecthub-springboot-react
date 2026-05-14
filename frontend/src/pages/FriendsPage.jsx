@@ -133,6 +133,7 @@ const FriendsPage = () => {
 
   const fetchSuggested = useCallback(async () => {
     if (!token) {
+      setSuggestedLoading(false);
       handleAuthError();
       return;
     }
@@ -160,6 +161,7 @@ const FriendsPage = () => {
 
   const fetchFriends = useCallback(async () => {
     if (!token) {
+      setFriendsLoading(false);
       handleAuthError();
       return;
     }
