@@ -1,6 +1,7 @@
 package com.connecthub_springboot_react.service;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -13,14 +14,18 @@ import com.connecthub_springboot_react.util.S3PublicUrlUtils;
 
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.ObjectCannedACL;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
 @Service
 @ConditionalOnProperty(name = "aws.s3.enabled", havingValue = "true")
 public class S3Service {
 
     private final S3Client s3Client;
+    private final S3Presigner s3Presigner;
 
     @Value("${aws.s3.bucket-name}")
     private String bucketName;
@@ -32,8 +37,40 @@ public class S3Service {
     @Value("${aws.s3.use-object-acl:false}")
     private boolean useObjectAcl;
 
-    public S3Service(S3Client s3Client) {
+    /** How long presigned GET URLs live when returning S3 keys to the browser (private buckets). */
+    @Value("${aws.s3.presign-get-ttl-minutes:60}")
+    private long presignGetTtlMinutes;
+
+    public S3Service(S3Client s3Client, S3Presigner s3Presigner) {
         this.s3Client = s3Client;
+        this.s3Presigner = s3Presigner;
+    }
+
+    /**
+     * Browsers cannot send AWS SigV4 on {@code <img src>}. For private objects, return a presigned HTTPS URL.
+     * Leaves localhost, relative paths, and third-party URLs unchanged.
+     */
+    public String resolveUrlForBrowserRead(String storedUrl) {
+        if (storedUrl == null || storedUrl.isBlank()) {
+            return storedUrl;
+        }
+        Optional<String> keyOpt = S3PublicUrlUtils.extractObjectKey(storedUrl, bucketName);
+        if (keyOpt.isEmpty()) {
+            return storedUrl;
+        }
+        try {
+            GetObjectRequest get = GetObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(keyOpt.get())
+                    .build();
+            GetObjectPresignRequest presign = GetObjectPresignRequest.builder()
+                    .signatureDuration(Duration.ofMinutes(Math.max(5, presignGetTtlMinutes)))
+                    .getObjectRequest(get)
+                    .build();
+            return s3Presigner.presignGetObject(presign).url().toExternalForm();
+        } catch (Exception e) {
+            return storedUrl;
+        }
     }
 
     public String uploadFile(MultipartFile file) throws IOException {

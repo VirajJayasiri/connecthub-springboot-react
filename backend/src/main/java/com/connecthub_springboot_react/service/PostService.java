@@ -207,10 +207,18 @@ public class PostService {
         dto.setAuthorId(post.getAuthorId());
         dto.setAuthorUsername(post.getAuthorUsername());
         dto.setAuthorFullName(post.getAuthorFullName());
-        dto.setAuthorProfileImage(post.getAuthorProfileImage());
         dto.setCaption(post.getCaption());
         dto.setMediaType(post.getMediaType());
-        dto.setMediaUrl(post.getMediaUrl());
+        String mediaUrl = post.getMediaUrl();
+        if (mediaUrl != null && s3Service.isPresent()) {
+            mediaUrl = s3Service.get().resolveUrlForBrowserRead(mediaUrl);
+        }
+        dto.setMediaUrl(mediaUrl);
+        String authorImg = post.getAuthorProfileImage();
+        if (authorImg != null && s3Service.isPresent()) {
+            authorImg = s3Service.get().resolveUrlForBrowserRead(authorImg);
+        }
+        dto.setAuthorProfileImage(authorImg);
         dto.setCommentCount(post.getCommentCount());
         dto.setCreatedAt(post.getCreatedAt());
 

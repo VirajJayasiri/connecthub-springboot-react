@@ -81,9 +81,7 @@ const CreatePostCard = ({ currentUser, onPostCreated }) => {
       formData.append('caption', caption);
       if (mediaFile) formData.append('media', mediaFile);
 
-      const res = await API.post('/posts', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const res = await API.post('/posts', formData);
 
       setCaption('');
       removeMedia();

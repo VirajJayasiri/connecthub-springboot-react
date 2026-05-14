@@ -93,7 +93,6 @@ const EditProfileModal = ({ user, onSave, onClose, onProfileImageUpdated }) => {
       const response = await axios.put(`${API_BASE}/api/auth/me`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
         },
       });
 
