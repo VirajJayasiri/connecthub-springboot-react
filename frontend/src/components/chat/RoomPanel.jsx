@@ -9,8 +9,8 @@ import {
   ArrowLeft,
   Send,
 } from "lucide-react";
-import VoiceRoom from "./VoiceRoom";
-import VideoRoom from "./VideoRoom";
+import VoiceRoomView from "./VoiceRoomView";
+import VideoRoomView from "./VideoRoomView";
 import { joinRoomApi } from "../../services/roomsApi";
 
 const API_BASE = "http://localhost:8080";
@@ -102,11 +102,11 @@ export default function RoomPanel({ room, onBack }) {
   };
 
   if (isJoined && room.type === "video") {
-    return <VideoRoom room={room} onLeave={() => setIsJoined(false)} />;
+    return <VideoRoomView room={room} onLeave={() => setIsJoined(false)} />;
   }
 
   if (isJoined && room.type === "voice") {
-    return <VoiceRoom room={room} onLeave={() => setIsJoined(false)} />;
+    return <VoiceRoomView room={room} onLeave={() => setIsJoined(false)} />;
   }
 
   return (
@@ -181,7 +181,7 @@ export default function RoomPanel({ room, onBack }) {
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mb-8 leading-relaxed">
               {room.type === "voice"
-                ? "Join to listen on stage, use text chat, and request the microphone. Only hosts, admins, and approved speakers publish audio to LiveKit."
+                ? "Join to talk with microphone-only audio and hear everyone in the room."
                 : "Join for a standard video chat with camera and microphone controls."}
             </p>
             <button

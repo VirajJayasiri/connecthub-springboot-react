@@ -137,7 +137,8 @@ public class RoomService {
             display = display.substring(0, 40);
         }
         boolean canPublish = room.getType() == RoomType.VIDEO || isStageRole(member.getRole());
-        return liveKitTokenService.issueToken(userId, display, roomId, canPublish);
+        String roomName = liveKitTokenService.liveKitRoomName(roomId);
+        return liveKitTokenService.issueToken(userId, display, roomName, canPublish);
     }
 
     public void sendRoomChat(String roomId, String userId, String content) {
