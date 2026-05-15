@@ -1,7 +1,6 @@
 package com.connecthub_springboot_react.service;
 
 import com.connecthub_springboot_react.dto.room.LiveKitTokenResponse;
-import com.connecthub_springboot_react.model.room.RoomMemberRole;
 import io.livekit.server.AccessToken;
 import io.livekit.server.CanPublish;
 import io.livekit.server.CanSubscribe;
@@ -26,11 +25,7 @@ public class LiveKitTokenService {
         return "chub_" + mongoRoomId.replaceAll("[^a-zA-Z0-9_-]", "_");
     }
 
-    public LiveKitTokenResponse issueToken(String userId, String displayName, String mongoRoomId, RoomMemberRole role) {
-        boolean canPublish = role == RoomMemberRole.HOST
-                || role == RoomMemberRole.ADMIN
-                || role == RoomMemberRole.SPEAKER;
-
+    public LiveKitTokenResponse issueToken(String userId, String displayName, String mongoRoomId, boolean canPublish) {
         String lkRoom = liveKitRoomName(mongoRoomId);
 
         AccessToken token = new AccessToken(apiKey, apiSecret);
