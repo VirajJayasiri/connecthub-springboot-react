@@ -31,7 +31,7 @@ public class LiveKitTokenService {
         AccessToken token = new AccessToken(apiKey, apiSecret);
         token.setIdentity(userId);
         token.setName(displayName != null ? displayName : userId);
-        token.setTtl(60 * 60 * 1000L);
+        token.setTtl(3600L); // 1 hour in seconds
 
         token.addGrants(
                 new RoomJoin(true),

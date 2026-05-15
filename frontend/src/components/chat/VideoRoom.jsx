@@ -1,7 +1,18 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Room, RoomEvent, Track } from "livekit-client";
-import { Camera, CameraOff, Loader2, LogOut, Mic, MicOff, User } from "lucide-react";
-import { fetchLiveKitToken, joinRoomApi } from "../../services/roomsApi";
+import { Room, RoomEvent, Track, ConnectionState } from "livekit-client";
+import {
+  Camera,
+  CameraOff,
+  Loader2,
+  LogOut,
+  Mic,
+  MicOff,
+  User,
+  RefreshCw,
+  Wifi,
+  WifiOff,
+} from "lucide-react";
+import { fetchLiveKitToken } from "../../services/roomsApi";
 
 const MAX_NAME_LENGTH = 40;
 
@@ -46,20 +57,28 @@ function DisplayNamePrompt({ initialName, onSubmit, onCancel }) {
               <User size={20} />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Enter your name</h2>
-              <p className="text-xs text-gray-500">This shows to other participants.</p>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                Enter your name
+              </h2>
+              <p className="text-xs text-gray-500">
+                This shows to other participants.
+              </p>
             </div>
           </div>
           <input
+            autoFocus
             value={name}
             onChange={(e) => {
               setName(e.target.value);
               setError("");
             }}
+            onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
             placeholder="Your display name"
             className="w-full px-4 py-3 rounded-2xl border border-gray-100 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-gray-100 text-sm outline-none focus:ring-2 ring-gray-900/5 transition-all"
           />
-          {error && <p className="mt-2 text-xs font-semibold text-red-500">{error}</p>}
+          {error && (
+            <p className="mt-2 text-xs font-semibold text-red-500">{error}</p>
+          )}
         </div>
         <div className="p-4 pt-0 flex items-center gap-3">
           <button
@@ -91,7 +110,9 @@ function VideoTile({ tile }) {
     if (!el || !tile.videoTrack) return undefined;
     tile.videoTrack.attach(el);
     return () => {
-      tile.videoTrack.detach(el);
+      try {
+        tile.videoTrack.detach(el);
+      } catch (_) {}
     };
   }, [tile.videoTrack]);
 
@@ -100,147 +121,331 @@ function VideoTile({ tile }) {
     if (!el || !tile.audioTrack || tile.isLocal) return undefined;
     tile.audioTrack.attach(el);
     return () => {
-      tile.audioTrack.detach(el);
+      try {
+        tile.audioTrack.detach(el);
+      } catch (_) {}
     };
   }, [tile.audioTrack, tile.isLocal]);
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-neutral-800 bg-black">
+    <div className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-neutral-800 bg-black aspect-video">
       {tile.videoTrack ? (
         <video
           ref={videoRef}
           className="h-full w-full object-cover"
           playsInline
           muted={tile.isLocal}
+          autoPlay
         />
       ) : (
         <div className="h-full w-full flex flex-col items-center justify-center text-gray-400 bg-neutral-950">
-          <CameraOff size={36} />
-          <span className="mt-2 text-xs">Camera off</span>
+          <div className="w-16 h-16 rounded-full bg-neutral-800 flex items-center justify-center mb-2">
+            <span className="text-2xl font-bold text-gray-300">
+              {tile.name ? tile.name[0].toUpperCase() : "?"}
+            </span>
+          </div>
+          <CameraOff size={20} className="opacity-40" />
+          <span className="mt-1 text-xs opacity-40">Camera off</span>
         </div>
       )}
-      <div className="absolute left-3 bottom-3 flex items-center gap-2 bg-black/60 text-white text-xs px-2.5 py-1 rounded-full">
-        <span className="font-semibold truncate max-w-30">{tile.name}</span>
-        {tile.isMuted && <MicOff size={12} className="text-red-300" />}
+      <div className="absolute left-3 bottom-3 flex items-center gap-2 bg-black/60 text-white text-xs px-2.5 py-1 rounded-full backdrop-blur-sm">
+        <span className="font-semibold truncate max-w-[120px]">
+          {tile.name}
+        </span>
+        {tile.isLocal && (
+          <span className="text-green-400 text-[10px]">You</span>
+        )}
+        {tile.isMuted && (
+          <MicOff size={11} className="text-red-300 flex-shrink-0" />
+        )}
       </div>
       <audio ref={audioRef} autoPlay />
     </div>
   );
 }
 
-function buildTiles(room) {
+/** Build tiles from livekit-client v2 Room object */
+function buildTiles(lkRoom) {
   const tiles = [];
+
   const pushParticipant = (participant, isLocal) => {
+    // livekit-client v2: getTrackPublication
     const videoPub = participant.getTrackPublication(Track.Source.Camera);
     const audioPub = participant.getTrackPublication(Track.Source.Microphone);
+
+    // A track is live only when it exists and is not muted at the publication level
+    const videoTrack =
+      videoPub?.track && !videoPub.isMuted ? videoPub.track : null;
+    const audioTrack = audioPub?.track || null;
+
     tiles.push({
       id: participant.identity,
-      name: participant.name || participant.identity,
+      name: participant.name || participant.identity || "Unknown",
       isLocal,
-      videoTrack: videoPub?.track || null,
-      audioTrack: audioPub?.track || null,
+      videoTrack,
+      audioTrack,
       isMuted: audioPub?.isMuted ?? true,
     });
   };
 
-  if (room.localParticipant) {
-    pushParticipant(room.localParticipant, true);
+  if (lkRoom.localParticipant) {
+    pushParticipant(lkRoom.localParticipant, true);
   }
-  room.participants.forEach((p) => pushParticipant(p, false));
+
+  // livekit-client v2: remoteParticipants is a Map<string, RemoteParticipant>
+  lkRoom.remoteParticipants.forEach((p) => pushParticipant(p, false));
+
   return tiles;
 }
 
 export default function VideoRoom({ room, onLeave }) {
-  const [displayName, setDisplayName] = useState(() => readDefaultDisplayName());
+  const [displayName, setDisplayName] = useState(() =>
+    readDefaultDisplayName(),
+  );
   const [showNamePrompt, setShowNamePrompt] = useState(true);
   const [tiles, setTiles] = useState([]);
-  const [isConnecting, setIsConnecting] = useState(false);
+  const [connectionState, setConnectionState] = useState(
+    ConnectionState.Disconnected,
+  );
   const [micEnabled, setMicEnabled] = useState(false);
   const [camEnabled, setCamEnabled] = useState(false);
   const [error, setError] = useState("");
   const roomRef = useRef(null);
+  const isConnectingRef = useRef(false);
 
-  const syncLocalState = useCallback((lkRoom) => {
-    const lp = lkRoom.localParticipant;
-    setMicEnabled(Boolean(lp?.isMicrophoneEnabled));
-    setCamEnabled(Boolean(lp?.isCameraEnabled));
-  }, []);
+  const isConnecting =
+    connectionState === ConnectionState.Connecting ||
+    connectionState === ConnectionState.Reconnecting;
+  const isConnected = connectionState === ConnectionState.Connected;
 
   const syncTiles = useCallback((lkRoom) => {
     setTiles(buildTiles(lkRoom));
-    syncLocalState(lkRoom);
-  }, [syncLocalState]);
-
-  const disconnect = useCallback(async () => {
-    const lkRoom = roomRef.current;
-    if (!lkRoom) return;
-    lkRoom.removeAllListeners();
-    await lkRoom.disconnect();
-    roomRef.current = null;
+    if (lkRoom.localParticipant) {
+      setMicEnabled(Boolean(lkRoom.localParticipant.isMicrophoneEnabled));
+      setCamEnabled(Boolean(lkRoom.localParticipant.isCameraEnabled));
+    }
   }, []);
 
-  const connect = useCallback(async () => {
+  const stopLocalTracks = useCallback((lkRoom) => {
+    const participant = lkRoom?.localParticipant;
+    if (!participant?.trackPublications) return;
+    participant.trackPublications.forEach((publication) => {
+      if (!publication?.track) return;
+      try {
+        participant.unpublishTrack(publication.track);
+      } catch (_) {}
+      try {
+        publication.track.stop();
+      } catch (_) {}
+    });
+  }, []);
+
+  const cleanupRoom = useCallback(
+    async (lkRoom, options = {}) => {
+      if (!lkRoom) {
+        setTiles([]);
+        setMicEnabled(false);
+        setCamEnabled(false);
+        setConnectionState(ConnectionState.Disconnected);
+        return;
+      }
+
+      if (options.log) {
+        console.log("Cleaning previous room instance");
+      }
+
+      try {
+        lkRoom.removeAllListeners();
+      } catch (_) {}
+
+      try {
+        await lkRoom.localParticipant?.setMicrophoneEnabled(false);
+      } catch (_) {}
+      try {
+        await lkRoom.localParticipant?.setCameraEnabled(false);
+      } catch (_) {}
+
+      stopLocalTracks(lkRoom);
+
+      if (!options.skipDisconnect) {
+        try {
+          await lkRoom.disconnect();
+        } catch (_) {}
+      }
+
+      if (roomRef.current === lkRoom) {
+        roomRef.current = null;
+      }
+
+      isConnectingRef.current = false;
+      setTiles([]);
+      setMicEnabled(false);
+      setCamEnabled(false);
+      setConnectionState(ConnectionState.Disconnected);
+    },
+    [stopLocalTracks],
+  );
+
+  const disconnectRoom = useCallback(async () => {
+    const lkRoom = roomRef.current;
+    if (!lkRoom) {
+      setTiles([]);
+      setMicEnabled(false);
+      setCamEnabled(false);
+      setConnectionState(ConnectionState.Disconnected);
+      return;
+    }
+    console.log("Disconnected from LiveKit");
+    await cleanupRoom(lkRoom);
+  }, [cleanupRoom]);
+
+  const connectRoom = useCallback(async () => {
     if (!room?.id) return;
-    setIsConnecting(true);
+    const currentState = roomRef.current?.connectionState;
+    if (
+      isConnectingRef.current ||
+      currentState === ConnectionState.Connected ||
+      currentState === ConnectionState.Connecting ||
+      currentState === ConnectionState.Reconnecting
+    ) {
+      return;
+    }
+
+    // Always kill any existing room first so we never reuse stale session state
+    // (reusing a Room after server restart causes STATE_MISMATCH reconnect errors)
+    const existing = roomRef.current;
+    if (existing) {
+      await cleanupRoom(existing, { log: true });
+    }
+
     setError("");
+    setTiles([]);
+    setConnectionState(ConnectionState.Connecting);
+    isConnectingRef.current = true;
+    console.log("Connecting to LiveKit...");
 
+    let lkRoom;
     try {
-      await joinRoomApi(room.id);
-      const cred = await fetchLiveKitToken(room.id, displayName);
-      const lkRoom = new Room();
-      roomRef.current = lkRoom;
-      await lkRoom.connect(cred.serverUrl, cred.token, { autoSubscribe: true });
+      let cred;
+      try {
+        cred = await fetchLiveKitToken(room.id, displayName);
+      } catch (tokenErr) {
+        console.error("[VideoRoom] Token error:", tokenErr);
+        throw tokenErr;
+      }
 
-      lkRoom.on(RoomEvent.ParticipantConnected, () => syncTiles(lkRoom));
-      lkRoom.on(RoomEvent.ParticipantDisconnected, () => syncTiles(lkRoom));
-      lkRoom.on(RoomEvent.TrackSubscribed, () => syncTiles(lkRoom));
-      lkRoom.on(RoomEvent.TrackUnsubscribed, () => syncTiles(lkRoom));
-      lkRoom.on(RoomEvent.TrackMuted, () => syncTiles(lkRoom));
-      lkRoom.on(RoomEvent.TrackUnmuted, () => syncTiles(lkRoom));
-      lkRoom.on(RoomEvent.LocalTrackPublished, () => syncTiles(lkRoom));
-      lkRoom.on(RoomEvent.LocalTrackUnpublished, () => syncTiles(lkRoom));
-      lkRoom.on(RoomEvent.Disconnected, () => {
-        setError("Disconnected from the video room.");
+      if (!cred?.serverUrl || !cred?.token) {
+        throw new Error("Backend returned an invalid LiveKit credential.");
+      }
+
+      // Always create a brand-new Room — never reuse to avoid stale reconnect
+      lkRoom = new Room({
+        adaptiveStream: false,
+        dynacast: false,
+        reconnectPolicy: null,
+      });
+      roomRef.current = lkRoom;
+
+      const refresh = () => syncTiles(lkRoom);
+
+      lkRoom.on(RoomEvent.Connected, () => {
+        if (roomRef.current !== lkRoom) return;
+        setConnectionState(ConnectionState.Connected);
+        setError("");
+        refresh();
+      });
+      lkRoom.on(RoomEvent.Disconnected, (reason) => {
+        if (roomRef.current !== lkRoom) return;
+        console.log("Disconnected from LiveKit");
+        setConnectionState(ConnectionState.Disconnected);
+        if (reason) {
+          console.warn("[VideoRoom] LiveKit disconnected:", reason);
+        }
+        cleanupRoom(lkRoom, { skipDisconnect: true });
+      });
+      lkRoom.on(RoomEvent.ParticipantConnected, refresh);
+      lkRoom.on(RoomEvent.ParticipantDisconnected, refresh);
+      lkRoom.on(RoomEvent.TrackSubscribed, refresh);
+      lkRoom.on(RoomEvent.TrackUnsubscribed, refresh);
+      lkRoom.on(RoomEvent.TrackMuted, refresh);
+      lkRoom.on(RoomEvent.TrackUnmuted, refresh);
+      lkRoom.on(RoomEvent.LocalTrackPublished, refresh);
+      lkRoom.on(RoomEvent.LocalTrackUnpublished, refresh);
+      lkRoom.on(RoomEvent.ConnectionStateChanged, (state) => {
+        if (roomRef.current !== lkRoom) return;
+        setConnectionState(state);
       });
 
-      await lkRoom.localParticipant.setMicrophoneEnabled(true);
-      await lkRoom.localParticipant.setCameraEnabled(true);
+      // maxRetries: 0 prevents auto-reconnect with stale session after server restart
+      await lkRoom.connect(cred.serverUrl, cred.token, {
+        autoSubscribe: true,
+        maxRetries: 0,
+      });
+
+      // Enable mic and camera after connecting
+      try {
+        await lkRoom.localParticipant.setMicrophoneEnabled(true);
+      } catch (micErr) {
+        console.warn("Could not enable microphone:", micErr);
+      }
+      try {
+        await lkRoom.localParticipant.setCameraEnabled(true);
+      } catch (camErr) {
+        console.warn("Could not enable camera:", camErr);
+      }
 
       syncTiles(lkRoom);
     } catch (e) {
-      console.error(e);
+      console.error("[VideoRoom] Connection error:", e);
+      setConnectionState(ConnectionState.Disconnected);
+
       const status = e?.response?.status;
       const apiMessage = e?.response?.data?.message;
       const rawMessage = String(e?.message || "");
       const lower = rawMessage.toLowerCase();
-      let message = "Could not connect to the video room.";
+
+      let message;
       if (status === 401) {
         message = "Your session expired. Please log in again.";
       } else if (status === 403) {
         message = "You are not allowed to join this room.";
       } else if (apiMessage) {
         message = String(apiMessage);
-      } else if (lower.includes("network") || lower.includes("connect") || lower.includes("websocket")) {
-        message = "Could not reach the LiveKit server. Start it and try again.";
+      } else if (
+        lower.includes("network") ||
+        lower.includes("connect") ||
+        lower.includes("websocket") ||
+        lower.includes("failed to fetch") ||
+        lower.includes("econnrefused")
+      ) {
+        message =
+          'Could not reach the LiveKit server. Make sure the Docker container is running:\n\ndocker run --rm -p 7880:7880 -p 7881:7881 -p 7882:7882/udp livekit/livekit-server --dev --keys "devkey: secret"';
+      } else {
+        message = `Could not connect: ${rawMessage || "Unknown error"}`;
       }
       setError(message);
-      await disconnect();
-    } finally {
-      setIsConnecting(false);
-    }
-  }, [room?.id, displayName, syncTiles, disconnect]);
 
+      if (lkRoom) {
+        await cleanupRoom(lkRoom);
+      }
+      roomRef.current = null;
+    } finally {
+      isConnectingRef.current = false;
+    }
+  }, [room?.id, displayName, syncTiles, cleanupRoom]);
+
+  // Connect when name prompt is dismissed
   useEffect(() => {
     if (!showNamePrompt) {
-      connect();
+      connectRoom();
     }
     return () => {
-      disconnect();
+      disconnectRoom();
     };
-  }, [showNamePrompt, connect, disconnect]);
+  }, [showNamePrompt, connectRoom, disconnectRoom]);
 
   const handleLeave = async () => {
-    await disconnect();
+    await disconnectRoom();
     onLeave();
   };
 
@@ -287,10 +492,30 @@ export default function VideoRoom({ room, onLeave }) {
         />
       )}
 
-      <div className="flex items-center justify-between px-4 md:px-6 py-3 border-b border-gray-200 dark:border-neutral-800 bg-white dark:bg-black">
-        <div>
-          <h2 className="text-base md:text-lg font-bold text-gray-900 dark:text-gray-100">{room.name}</h2>
-          <p className="text-xs text-gray-400">Video room</p>
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 md:px-6 py-3 border-b border-gray-200 dark:border-neutral-800 bg-white dark:bg-black flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <div>
+            <h2 className="text-base md:text-lg font-bold text-gray-900 dark:text-gray-100 leading-tight">
+              {room.name}
+            </h2>
+            <p className="text-xs text-gray-400 flex items-center gap-1">
+              {isConnected ? (
+                <>
+                  <Wifi size={11} className="text-green-500" /> Connected
+                </>
+              ) : isConnecting ? (
+                <>
+                  <Loader2 size={11} className="animate-spin text-yellow-500" />{" "}
+                  Connecting…
+                </>
+              ) : (
+                <>
+                  <WifiOff size={11} className="text-red-400" /> Disconnected
+                </>
+              )}
+            </p>
+          </div>
         </div>
         <button
           type="button"
@@ -301,25 +526,58 @@ export default function VideoRoom({ room, onLeave }) {
         </button>
       </div>
 
+      {/* Error banner */}
       {error && (
-        <div className="px-4 md:px-6 py-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border-b border-red-100 dark:border-red-900">
-          {error}
+        <div className="px-4 md:px-6 py-3 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border-b border-red-100 dark:border-red-900 flex items-start justify-between gap-3 flex-shrink-0">
+          <pre className="whitespace-pre-wrap font-sans flex-1">{error}</pre>
+          <button
+            type="button"
+            onClick={connectRoom}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-900/40 hover:bg-red-200 dark:hover:bg-red-800/50 text-red-700 dark:text-red-300 text-xs font-semibold whitespace-nowrap flex-shrink-0 transition-colors"
+          >
+            <RefreshCw size={13} /> Retry
+          </button>
         </div>
       )}
 
-      <div className="flex-1 p-4 md:p-6">
+      {/* Video grid */}
+      <div className="flex-1 p-4 md:p-6 overflow-auto">
         {isConnecting ? (
           <div className="h-full flex flex-col items-center justify-center text-gray-400">
-            <Loader2 className="animate-spin" size={30} />
-            <p className="mt-3 text-sm">Connecting to video room...</p>
+            <Loader2 className="animate-spin mb-3" size={36} />
+            <p className="text-sm font-medium">Connecting to video room…</p>
+            <p className="text-xs mt-1 opacity-60">
+              This may take a few seconds
+            </p>
           </div>
         ) : tiles.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-gray-400">
-            <Camera size={30} />
-            <p className="mt-3 text-sm">Waiting for participants...</p>
+            <Camera size={36} className="mb-3 opacity-50" />
+            <p className="text-sm font-medium">
+              {isConnected ? "Waiting for participants…" : "Not connected"}
+            </p>
+            {!isConnected && !error && (
+              <button
+                type="button"
+                onClick={connectRoom}
+                className="mt-4 flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-black text-sm font-semibold hover:opacity-90"
+              >
+                <RefreshCw size={15} /> Connect
+              </button>
+            )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 h-full">
+          <div
+            className={`grid gap-4 h-full ${
+              tiles.length === 1
+                ? "grid-cols-1"
+                : tiles.length === 2
+                  ? "grid-cols-1 sm:grid-cols-2"
+                  : tiles.length <= 4
+                    ? "grid-cols-2"
+                    : "grid-cols-2 lg:grid-cols-3"
+            }`}
+          >
             {tiles.map((tile) => (
               <VideoTile key={tile.id} tile={tile} />
             ))}
@@ -327,27 +585,33 @@ export default function VideoRoom({ room, onLeave }) {
         )}
       </div>
 
-      <div className="px-4 md:px-6 py-3 border-t border-gray-200 dark:border-neutral-800 bg-white dark:bg-black">
+      {/* Controls */}
+      <div className="px-4 md:px-6 py-4 border-t border-gray-200 dark:border-neutral-800 bg-white dark:bg-black flex-shrink-0">
         <div className="flex items-center justify-center gap-3">
           <button
             type="button"
             onClick={handleToggleMic}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
+            disabled={!isConnected}
+            title={micEnabled ? "Mute microphone" : "Unmute microphone"}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
               micEnabled
-                ? "bg-gray-900 dark:bg-white text-white dark:text-black"
-                : "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400"
+                ? "bg-gray-900 dark:bg-white text-white dark:text-black hover:opacity-80"
+                : "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40"
             }`}
           >
             {micEnabled ? <Mic size={16} /> : <MicOff size={16} />}
             {micEnabled ? "Mute" : "Unmute"}
           </button>
+
           <button
             type="button"
             onClick={handleToggleCam}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
+            disabled={!isConnected}
+            title={camEnabled ? "Stop camera" : "Start camera"}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
               camEnabled
-                ? "bg-gray-900 dark:bg-white text-white dark:text-black"
-                : "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400"
+                ? "bg-gray-900 dark:bg-white text-white dark:text-black hover:opacity-80"
+                : "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40"
             }`}
           >
             {camEnabled ? <Camera size={16} /> : <CameraOff size={16} />}
