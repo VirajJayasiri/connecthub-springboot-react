@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import AppNavbar from "../components/common/AppNavbar";
 import RoomPanel from "../components/chat/RoomPanel";
 import {
@@ -193,18 +194,15 @@ const CreateModal = ({ onClose, onCreate }) => {
                   {
                     id: "video",
                     label: "Video Chat",
-                    sub: "Coming soon",
+                    sub: "Camera and microphone",
                     Icon: Video,
-                    disabled: true,
                   },
                 ].map((t) => (
                   <button
                     key={t.id}
                     type="button"
-                    disabled={t.disabled}
-                    onClick={() => !t.disabled && setType(t.id)}
+                    onClick={() => setType(t.id)}
                     className={`w-full flex items-center gap-4 p-3 rounded-2xl border transition-all duration-300 text-left
-                      ${t.disabled ? "opacity-40 cursor-not-allowed" : ""}
                       ${type === t.id ? "bg-gray-900 dark:bg-white text-white dark:text-black border-transparent" : "bg-white dark:bg-neutral-800 border-gray-100 dark:border-neutral-800 text-gray-600 dark:text-gray-400 hover:border-gray-200"}`}
                   >
                     <div className={`p-2 rounded-xl ${type === t.id ? "bg-white/10 dark:bg-black/5" : "bg-gray-100 dark:bg-neutral-700"}`}>
@@ -263,6 +261,7 @@ const CreateModal = ({ onClose, onCreate }) => {
 };
 
 export default function ChatRoomsPage() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState(null);
@@ -274,10 +273,21 @@ export default function ChatRoomsPage() {
   const currentUser = useMemo(() => readCurrentUser(), []);
   const currentUserId = currentUser?._id || currentUser?.id || null;
 
+  const handleAuthError = useCallback(() => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login", { replace: true });
+  }, [navigate]);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          handleAuthError();
+          return;
+        }
         const list = await fetchRooms();
         if (!cancelled) {
           setRooms(list);
@@ -285,7 +295,18 @@ export default function ChatRoomsPage() {
         }
       } catch (e) {
         console.error(e);
-        if (!cancelled) {
+        if (cancelled) return;
+        const status = e?.response?.status;
+        if (status === 401) {
+          handleAuthError();
+          return;
+        }
+        const message = e?.response?.data?.message;
+        if (message) {
+          setLoadError(String(message));
+        } else if (e?.message === "Network Error") {
+          setLoadError("Could not reach the backend. Make sure it is running on http://localhost:8080.");
+        } else {
           setLoadError("Could not load rooms. Is the backend running and are you logged in?");
         }
       } finally {
@@ -298,10 +319,6 @@ export default function ChatRoomsPage() {
   }, []);
 
   const handleCreateRoom = async ({ name, description, type }) => {
-    if (type === "video") {
-      setLoadError("Video rooms are not enabled yet.");
-      return;
-    }
     try {
       const newRoom = await createRoomApi({ name, description, type });
       setRooms((prev) => [newRoom, ...prev]);
@@ -312,6 +329,10 @@ export default function ChatRoomsPage() {
       setLoadError(null);
     } catch (e) {
       console.error(e);
+      if (e?.response?.status === 401) {
+        handleAuthError();
+        return;
+      }
       const msg =
         e?.response?.data?.message ||
         e?.message ||
@@ -329,6 +350,10 @@ export default function ChatRoomsPage() {
       setLoadError(null);
     } catch (err) {
       console.error(err);
+      if (err?.response?.status === 401) {
+        handleAuthError();
+        return;
+      }
       setLoadError("Could not delete room.");
     }
   };
