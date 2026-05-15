@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -61,8 +62,11 @@ public class RoomController {
     }
 
     @GetMapping("/{roomId}/livekit-token")
-    public LiveKitTokenResponse liveKit(Authentication auth, @PathVariable String roomId) {
-        return roomService.liveKitToken(roomId, resolveUserId(auth));
+    public LiveKitTokenResponse liveKit(
+            Authentication auth,
+            @PathVariable String roomId,
+            @RequestParam(name = "displayName", required = false) String displayName) {
+        return roomService.liveKitToken(roomId, resolveUserId(auth), displayName);
     }
 
     @DeleteMapping("/{roomId}")
