@@ -42,8 +42,9 @@ export async function fetchRoomState(roomId) {
   return data;
 }
 
-export async function fetchLiveKitToken(roomId) {
-  const { data } = await API.get(`/rooms/${roomId}/livekit-token`);
+export async function fetchLiveKitToken(roomId, displayName) {
+  const params = displayName ? { displayName } : undefined;
+  const { data } = await API.get(`/rooms/${roomId}/livekit-token`, { params });
   return data;
 }
 
