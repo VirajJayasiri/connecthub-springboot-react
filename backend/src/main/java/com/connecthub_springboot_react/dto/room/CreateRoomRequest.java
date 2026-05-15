@@ -3,7 +3,7 @@ package com.connecthub_springboot_react.dto.room;
 public class CreateRoomRequest {
     private String name;
     private String description;
-    /** TEXT, VOICE, or VIDEO (case-insensitive). VIDEO is rejected at service layer until implemented. */
+    /** TEXT, VOICE, or VIDEO (case-insensitive). */
     private String type;
 
     public String getName() {
