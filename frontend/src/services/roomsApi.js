@@ -42,9 +42,15 @@ export async function fetchRoomState(roomId) {
   return data;
 }
 
-export async function fetchLiveKitToken(roomId, displayName) {
-  const params = displayName ? { displayName } : undefined;
-  const { data } = await API.get(`/rooms/${roomId}/livekit-token`, { params });
+export async function fetchLiveKitToken(roomIdOrPayload, displayName) {
+  if (typeof roomIdOrPayload === "string") {
+    const params = displayName ? { displayName } : undefined;
+    const { data } = await API.get(`/rooms/${roomIdOrPayload}/livekit-token`, { params });
+    return data;
+  }
+
+  const payload = roomIdOrPayload || {};
+  const { data } = await API.post("/livekit/token", payload);
   return data;
 }
 

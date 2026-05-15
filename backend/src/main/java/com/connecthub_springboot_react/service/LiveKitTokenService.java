@@ -22,24 +22,30 @@ public class LiveKitTokenService {
     private String apiSecret;
 
     public String liveKitRoomName(String mongoRoomId) {
-        return "chub_" + mongoRoomId.replaceAll("[^a-zA-Z0-9_-]", "_");
+        String safe = mongoRoomId == null ? "" : mongoRoomId.replaceAll("[^a-zA-Z0-9_-]", "_");
+        return "connecthub-room-" + safe;
     }
 
-    public LiveKitTokenResponse issueToken(String userId, String displayName, String mongoRoomId, boolean canPublish) {
-        String lkRoom = liveKitRoomName(mongoRoomId);
-
+    public LiveKitTokenResponse issueToken(String userId, String displayName, String roomName, boolean canPublish) {
+        String resolvedName = displayName == null || displayName.isBlank() ? userId : displayName.trim();
+        if (resolvedName.length() > 40) {
+            resolvedName = resolvedName.substring(0, 40);
+        }
         AccessToken token = new AccessToken(apiKey, apiSecret);
         token.setIdentity(userId);
-        token.setName(displayName != null ? displayName : userId);
+        token.setName(resolvedName);
         token.setTtl(3600L); // 1 hour in seconds
 
         token.addGrants(
                 new RoomJoin(true),
-                new RoomName(lkRoom),
+                new RoomName(roomName),
                 new CanPublish(canPublish),
                 new CanSubscribe(true)
         );
 
-        return new LiveKitTokenResponse(livekitUrl, lkRoom, token.toJwt());
+            LiveKitTokenResponse response = new LiveKitTokenResponse(livekitUrl, roomName, token.toJwt());
+            response.setIdentity(userId);
+            response.setName(resolvedName);
+            return response;
     }
 }
