@@ -10,6 +10,7 @@ import {
   Send,
 } from "lucide-react";
 import VoiceRoom from "./VoiceRoom";
+import VideoRoom from "./VideoRoom";
 import { joinRoomApi } from "../../services/roomsApi";
 
 const API_BASE = "http://localhost:8080";
@@ -101,25 +102,7 @@ export default function RoomPanel({ room, onBack }) {
   };
 
   if (isJoined && room.type === "video") {
-    return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-        <Video size={48} className="text-gray-300 mb-4" />
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-          Video rooms
-        </h2>
-        <p className="text-sm text-gray-500 mb-6 max-w-sm">
-          Video stage rooms are not wired up yet. Use a voice room for LiveKit
-          audio today.
-        </p>
-        <button
-          type="button"
-          onClick={() => setIsJoined(false)}
-          className="px-4 py-2 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-black text-sm font-semibold"
-        >
-          Back
-        </button>
-      </div>
-    );
+    return <VideoRoom room={room} onLeave={() => setIsJoined(false)} />;
   }
 
   if (isJoined && room.type === "voice") {
@@ -199,7 +182,7 @@ export default function RoomPanel({ room, onBack }) {
             <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mb-8 leading-relaxed">
               {room.type === "voice"
                 ? "Join to listen on stage, use text chat, and request the microphone. Only hosts, admins, and approved speakers publish audio to LiveKit."
-                : "Video channels are coming soon."}
+                : "Join for a standard video chat with camera and microphone controls."}
             </p>
             <button
               type="button"
