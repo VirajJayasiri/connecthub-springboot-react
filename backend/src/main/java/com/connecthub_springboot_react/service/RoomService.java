@@ -15,6 +15,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -59,9 +61,6 @@ public class RoomService {
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Invalid room type");
         }
-        if (type == RoomType.VIDEO) {
-            throw new IllegalArgumentException("Video rooms are not enabled yet");
-        }
         Room room = new Room();
         room.setName(req.getName().trim());
         room.setDescription(req.getDescription() == null ? "" : req.getDescription().trim());
@@ -90,7 +89,7 @@ public class RoomService {
 
     public RoomDto joinRoom(String roomId, String userId) {
         Room room = roomRepository.findById(roomId).orElseThrow(() -> new IllegalArgumentException("Room not found"));
-        Optional<RoomMember> existing = roomMemberRepository.findByRoomIdAndUserId(roomId, userId);
+        Optional<RoomMember> existing = findMember(roomId, userId);
         if (existing.isPresent()) {
             return toDto(room, userId);
         }
@@ -107,6 +106,8 @@ public class RoomService {
             member.setRole(RoomMemberRole.MEMBER);
         } else if (room.getType() == RoomType.VOICE) {
             member.setRole(RoomMemberRole.AUDIENCE);
+        } else if (room.getType() == RoomType.VIDEO) {
+            member.setRole(RoomMemberRole.MEMBER);
         } else {
             member.setRole(RoomMemberRole.AUDIENCE);
         }
@@ -120,25 +121,29 @@ public class RoomService {
         return buildState(roomId);
     }
 
-    public LiveKitTokenResponse liveKitToken(String roomId, String userId) {
+    public LiveKitTokenResponse liveKitToken(String roomId, String userId, String displayName) {
         Room room = roomRepository.findById(roomId).orElseThrow(() -> new IllegalArgumentException("Room not found"));
-        if (room.getType() != RoomType.VOICE) {
-            throw new IllegalStateException("LiveKit only for voice rooms");
+        if (room.getType() != RoomType.VOICE && room.getType() != RoomType.VIDEO) {
+            throw new IllegalStateException("LiveKit only for voice/video rooms");
         }
-        RoomMember member = roomMemberRepository.findByRoomIdAndUserId(roomId, userId)
-                .orElseThrow(() -> new IllegalStateException("Join room first"));
+        RoomMember member = findMember(roomId, userId)
+            .orElseThrow(() -> new IllegalStateException("Join room first"));
         User user = userRepository.findById(userId).orElseThrow();
-        String display = user.getFullName() != null ? user.getFullName() : user.getUsername();
-        return liveKitTokenService.issueToken(userId, display, roomId, member.getRole());
+        String fallback = user.getFullName() != null ? user.getFullName() : user.getUsername();
+        String display = displayName != null && !displayName.isBlank()
+                ? displayName.trim()
+                : fallback;
+        if (display.length() > 40) {
+            display = display.substring(0, 40);
+        }
+        boolean canPublish = room.getType() == RoomType.VIDEO || isStageRole(member.getRole());
+        return liveKitTokenService.issueToken(userId, display, roomId, canPublish);
     }
 
     public void sendRoomChat(String roomId, String userId, String content) {
         Room room = roomRepository.findById(roomId).orElseThrow(() -> new IllegalArgumentException("Room not found"));
-        if (room.getType() == RoomType.VIDEO) {
-            throw new IllegalStateException("Video rooms not enabled yet");
-        }
-        roomMemberRepository.findByRoomIdAndUserId(roomId, userId)
-                .orElseThrow(() -> new IllegalStateException("Join room first"));
+        findMember(roomId, userId)
+            .orElseThrow(() -> new IllegalStateException("Join room first"));
 
         String trimmed = content == null ? "" : content.trim();
         if (trimmed.isEmpty()) {
@@ -164,8 +169,8 @@ public class RoomService {
         if (room.getType() != RoomType.VOICE) {
             throw new IllegalStateException("Raise hand only in voice rooms");
         }
-        RoomMember self = roomMemberRepository.findByRoomIdAndUserId(roomId, userId)
-                .orElseThrow(() -> new IllegalStateException("Join room first"));
+        RoomMember self = findMember(roomId, userId)
+            .orElseThrow(() -> new IllegalStateException("Join room first"));
         if (self.getRole() != RoomMemberRole.AUDIENCE) {
             throw new IllegalStateException("Only audience can request stage");
         }
@@ -188,8 +193,8 @@ public class RoomService {
         if (room.getType() != RoomType.VOICE) {
             throw new IllegalStateException("Voice only");
         }
-        RoomMember actor = roomMemberRepository.findByRoomIdAndUserId(p.getRoomId(), actorUserId)
-                .orElseThrow(() -> new IllegalStateException("Not a member"));
+        RoomMember actor = findMember(p.getRoomId(), actorUserId)
+            .orElseThrow(() -> new IllegalStateException("Not a member"));
         if (actor.getRole() != RoomMemberRole.HOST && actor.getRole() != RoomMemberRole.ADMIN) {
             throw new IllegalStateException("Not allowed to accept requests");
         }
@@ -215,8 +220,8 @@ public class RoomService {
             throw new IllegalStateException("Only host can grant admin");
         }
 
-        RoomMember target = roomMemberRepository.findByRoomIdAndUserId(p.getRoomId(), req.getUserId())
-                .orElseThrow(() -> new IllegalStateException("Target not in room"));
+        RoomMember target = findMember(p.getRoomId(), req.getUserId())
+            .orElseThrow(() -> new IllegalStateException("Target not in room"));
         target.setRole(promote);
         target.setMicEnabled(promote == RoomMemberRole.SPEAKER || promote == RoomMemberRole.ADMIN);
         roomMemberRepository.save(target);
@@ -234,8 +239,8 @@ public class RoomService {
         if (room.getType() != RoomType.VOICE) {
             throw new IllegalStateException("Voice only");
         }
-        RoomMember actor = roomMemberRepository.findByRoomIdAndUserId(p.getRoomId(), actorUserId)
-                .orElseThrow(() -> new IllegalStateException("Not a member"));
+        RoomMember actor = findMember(p.getRoomId(), actorUserId)
+            .orElseThrow(() -> new IllegalStateException("Not a member"));
         if (actor.getRole() != RoomMemberRole.HOST && actor.getRole() != RoomMemberRole.ADMIN) {
             throw new IllegalStateException("Not allowed");
         }
@@ -243,8 +248,8 @@ public class RoomService {
             throw new IllegalStateException("Cannot remove host");
         }
 
-        RoomMember target = roomMemberRepository.findByRoomIdAndUserId(p.getRoomId(), p.getTargetUserId())
-                .orElseThrow(() -> new IllegalArgumentException("Target not in room"));
+        RoomMember target = findMember(p.getRoomId(), p.getTargetUserId())
+            .orElseThrow(() -> new IllegalArgumentException("Target not in room"));
         if (target.getRole() != RoomMemberRole.SPEAKER && target.getRole() != RoomMemberRole.ADMIN) {
             throw new IllegalStateException("Target is not on stage");
         }
@@ -259,7 +264,7 @@ public class RoomService {
     }
 
     public void updateMicFlag(String roomId, String userId, boolean micOn) {
-        RoomMember m = roomMemberRepository.findByRoomIdAndUserId(roomId, userId).orElseThrow();
+        RoomMember m = findMember(roomId, userId).orElseThrow();
         if (m.getRole() == RoomMemberRole.AUDIENCE || m.getRole() == RoomMemberRole.MEMBER) {
             throw new IllegalStateException("Audience cannot publish mic");
         }
@@ -277,17 +282,35 @@ public class RoomService {
         dto.setHostUserId(room.getHostUserId());
         dto.setCreatedAt(room.getCreatedAt());
         dto.setMemberCount(roomMemberRepository.countByRoomId(room.getId()));
-        roomMemberRepository.findByRoomIdAndUserId(room.getId(), currentUserId)
+        findMember(room.getId(), currentUserId)
                 .ifPresent(mem -> dto.setMyRole(mem.getRole()));
         return dto;
     }
 
     private RoomStatePayloadDto buildState(String roomId) {
         List<RoomMember> members = roomMemberRepository.findByRoomId(roomId);
+        Map<String, RoomMember> uniqueMembers = new LinkedHashMap<>();
+        for (RoomMember m : members) {
+            if (m == null || m.getUserId() == null) {
+                continue;
+            }
+            RoomMember existing = uniqueMembers.get(m.getUserId());
+            if (existing == null) {
+                uniqueMembers.put(m.getUserId(), m);
+                continue;
+            }
+            Instant existingJoined = existing.getJoinedAt();
+            Instant candidateJoined = m.getJoinedAt();
+            boolean pickCandidate = existingJoined == null
+                    || (candidateJoined != null && candidateJoined.isAfter(existingJoined));
+            if (pickCandidate) {
+                uniqueMembers.put(m.getUserId(), m);
+            }
+        }
         List<RoomMemberViewDto> stage = new ArrayList<>();
         List<RoomMemberViewDto> audience = new ArrayList<>();
 
-        for (RoomMember m : members) {
+        for (RoomMember m : uniqueMembers.values()) {
             RoomMemberViewDto v = toView(m);
             if (isStageRole(m.getRole())) {
                 stage.add(v);
@@ -315,6 +338,34 @@ public class RoomService {
         envelope.put("state", state);
         envelope.put("affectedUserIds", affectedUserIds);
         messagingTemplate.convertAndSend(topic(roomId), new RoomEventDto(EVENT_STATE, envelope));
+    }
+
+    private Optional<RoomMember> findMember(String roomId, String userId) {
+        if (roomId == null || userId == null) {
+            return Optional.empty();
+        }
+        List<RoomMember> members = roomMemberRepository.findByRoomIdAndUserId(roomId, userId);
+        if (members == null || members.isEmpty()) {
+            return Optional.empty();
+        }
+
+        RoomMember newest = members.stream()
+                .max(Comparator.comparing(RoomMember::getJoinedAt, Comparator.nullsFirst(Comparator.naturalOrder())))
+                .orElse(members.get(0));
+
+        if (members.size() > 1) {
+            for (RoomMember m : members) {
+                if (m == newest) {
+                    continue;
+                }
+                if (m.getId() != null && newest.getId() != null && m.getId().equals(newest.getId())) {
+                    continue;
+                }
+                roomMemberRepository.delete(m);
+            }
+        }
+
+        return Optional.of(newest);
     }
 
     private String topic(String roomId) {
