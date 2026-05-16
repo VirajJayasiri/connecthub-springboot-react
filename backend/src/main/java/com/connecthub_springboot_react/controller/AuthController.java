@@ -24,6 +24,7 @@ import com.connecthub_springboot_react.dto.RegisterRequest;
 import com.connecthub_springboot_react.model.User;
 import com.connecthub_springboot_react.repository.UserRepository;
 import com.connecthub_springboot_react.service.AuthService;
+import com.connecthub_springboot_react.service.S3Service;
 import com.connecthub_springboot_react.service.UserService;
 
 import jakarta.validation.Valid;
@@ -35,11 +36,13 @@ public class AuthController {
     private final AuthService authService;
     private final UserRepository userRepository;
     private final UserService userService;
+    private final java.util.Optional<S3Service> s3Service;
 
-    public AuthController(AuthService authService, UserRepository userRepository, UserService userService) {
+    public AuthController(AuthService authService, UserRepository userRepository, UserService userService, java.util.Optional<S3Service> s3Service) {
         this.authService = authService;
         this.userRepository = userRepository;
         this.userService = userService;
+        this.s3Service = s3Service;
     }
 
     @PostMapping("/register")
@@ -117,8 +120,17 @@ public class AuthController {
         profile.put("fullName", user.getFullName());
         profile.put("username", user.getUsername());
         profile.put("email", user.getEmail());
-        profile.put("profileImage", user.getProfileImage());
-        profile.put("coverImage", user.getCoverImage());
+
+        // Resolve S3 URLs to presigned URLs for browser access
+        String profileImg = user.getProfileImage();
+        String coverImg = user.getCoverImage();
+        if (s3Service.isPresent()) {
+            if (profileImg != null) profileImg = s3Service.get().resolveUrlForBrowserRead(profileImg);
+            if (coverImg != null) coverImg = s3Service.get().resolveUrlForBrowserRead(coverImg);
+        }
+        profile.put("profileImage", profileImg);
+        profile.put("coverImage", coverImg);
+
         profile.put("bio", user.getBio());
         profile.put("location", user.getLocation());
         profile.put("website", user.getWebsite());

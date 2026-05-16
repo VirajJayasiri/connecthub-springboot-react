@@ -68,11 +68,25 @@ public class UserService {
         }
 
         if (profileImage != null && !profileImage.isEmpty()) {
-            user.setProfileImage(storeFile(profileImage));
+            try {
+                String url = s3Service.isPresent()
+                        ? s3Service.get().uploadFile(profileImage, "profiles")
+                        : storeFileUnderRelativeDir(profileImage, "profiles");
+                user.setProfileImage(url);
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to store profile image", e);
+            }
         }
 
         if (coverImage != null && !coverImage.isEmpty()) {
-            user.setCoverImage(storeFile(coverImage));
+            try {
+                String url = s3Service.isPresent()
+                        ? s3Service.get().uploadFile(coverImage, "covers")
+                        : storeFileUnderRelativeDir(coverImage, "covers");
+                user.setCoverImage(url);
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to store cover image", e);
+            }
         }
 
         return userRepository.save(user);
@@ -133,6 +147,6 @@ public class UserService {
         String pathSuffix = relativePathSegments.length == 0
                 ? filename
                 : String.join("/", relativePathSegments) + "/" + filename;
-        return "http://localhost:8080/uploads/" + pathSuffix;
+        return "/uploads/" + pathSuffix;
     }
 }

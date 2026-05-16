@@ -283,7 +283,11 @@ public class PostService {
         dto.setAuthorId(comment.getAuthorId());
         dto.setAuthorUsername(comment.getAuthorUsername());
         dto.setAuthorFullName(comment.getAuthorFullName());
-        dto.setAuthorProfileImage(comment.getAuthorProfileImage());
+        String authorImg = comment.getAuthorProfileImage();
+        if (authorImg != null && s3Service.isPresent()) {
+            authorImg = s3Service.get().resolveUrlForBrowserRead(authorImg);
+        }
+        dto.setAuthorProfileImage(authorImg);
         dto.setContent(comment.getContent());
         dto.setCreatedAt(comment.getCreatedAt());
         return dto;
