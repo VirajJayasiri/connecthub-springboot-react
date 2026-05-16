@@ -1,7 +1,21 @@
-# ConnectHub — run backend + frontend together
-# Usage: copy .env.example to .env, fill values, then: docker compose up --build
+# ConnectHub — backend + frontend + LiveKit (dev)
+# 1. Copy .env.example → .env and fill MongoDB + AWS values
+# 2. docker compose up --build
+# 3. App: http://localhost:5173  |  API: http://localhost:8080  |  LiveKit: ws://localhost:7880
 
 services:
+  livekit:
+    image: livekit/livekit-server
+    container_name: connecthub-livekit
+    command: ["--dev"]
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "7882:7882/udp"
+    environment:
+      LIVEKIT_KEYS: "devkey: secret"
+    restart: unless-stopped
+
   backend:
     build:
       context: ./backend
@@ -12,15 +26,21 @@ services:
     env_file:
       - .env
     environment:
-      # Override LiveKit URL when LiveKit runs on your PC (not inside this compose file)
-      # URL returned to the browser (use localhost, not host.docker.internal)
+      # Returned to the browser in LiveKit token responses (must be reachable from your PC)
       LIVEKIT_URL: ${LIVEKIT_URL:-ws://localhost:7880}
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:-devkey}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:-secret}
+    depends_on:
+      - livekit
     restart: unless-stopped
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080/api}
+        VITE_LIVEKIT_URL: ${VITE_LIVEKIT_URL:-ws://localhost:7880}
     container_name: connecthub-frontend
     ports:
       - "5173:80"

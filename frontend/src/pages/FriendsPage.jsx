@@ -15,8 +15,9 @@ import FriendSearch from "../components/friends/FriendSearch";
 import MessageList from "../components/friends/MessageList";
 import FriendChatPanel from "../components/friends/FriendChatPanel";
 import FriendEmptyState from "../components/friends/FriendEmptyState";
+import { API_ORIGIN } from "../config/env.js";
 
-const API_BASE = "http://localhost:8080";
+const API_BASE = API_ORIGIN;
 const FRIENDS_PRESENCE = "friends-chat";
 
 const formatTime = (timestamp) => {

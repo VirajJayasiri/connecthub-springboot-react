@@ -15,6 +15,7 @@ import {
   Globe,
 } from "lucide-react";
 import { createRoomApi, deleteRoomApi, fetchRooms } from "../services/roomsApi";
+import { API_ORIGIN } from "../config/env.js";
 
 const TYPE_ICON = { text: MessageSquare, voice: Mic, video: Video };
 const TYPE_LABEL = {
@@ -305,7 +306,7 @@ export default function ChatRoomsPage() {
         if (message) {
           setLoadError(String(message));
         } else if (e?.message === "Network Error") {
-          setLoadError("Could not reach the backend. Make sure it is running on http://localhost:8080.");
+          setLoadError(`Could not reach the backend. Make sure it is running on ${API_ORIGIN}.`);
         } else {
           setLoadError("Could not load rooms. Is the backend running and are you logged in?");
         }

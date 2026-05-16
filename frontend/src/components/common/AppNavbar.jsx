@@ -4,6 +4,7 @@ import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { Home, Users, Hash, User, Menu, X, Sun, Moon } from "lucide-react";
 import blackLogo from "../../assets/images/black_logo.png";
+import { API_ORIGIN } from "../../config/env.js";
 
 const navItems = [
   { label: "Posts", icon: Home, to: "/posts" },
@@ -12,7 +13,7 @@ const navItems = [
   { label: "Profile", icon: User, to: "/profile" },
 ];
 
-const API_BASE = "http://localhost:8080";
+const API_BASE = API_ORIGIN;
 
 const AppNavbar = ({ friendsUnreadCount }) => {
   const navigate = useNavigate();

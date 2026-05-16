@@ -8,9 +8,10 @@ import { X, Shield, Mic } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { fetchLiveKitToken, fetchRoomState, joinRoomApi } from "../../services/roomsApi";
+import { API_ORIGIN } from "../../config/env.js";
 
 const twMergeCls = (...inputs) => twMerge(clsx(inputs));
-const API_BASE = "http://localhost:8080";
+const API_BASE = API_ORIGIN;
 
 function readLocalUserId() {
   try {

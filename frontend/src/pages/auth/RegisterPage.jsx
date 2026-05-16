@@ -4,8 +4,9 @@ import { Mail, Lock, User, AtSign, CheckCircle } from "lucide-react";
 import axios from "axios";
 import AuthLayout from "../../components/layout/AuthLayout";
 import Input from "../../components/common/Input";
+import { API_ORIGIN } from "../../config/env.js";
 
-const API_BASE = "http://localhost:8080";
+const API_BASE = API_ORIGIN;
 
 const RegisterPage = () => {
   const navigate = useNavigate();

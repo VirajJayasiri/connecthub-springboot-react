@@ -2,9 +2,9 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
 import { Loader2, RefreshCw, WifiOff } from "lucide-react";
 import { fetchLiveKitToken } from "../../services/roomsApi";
+import { LIVEKIT_WS_URL } from "../../config/env.js";
 
-const FALLBACK_LIVEKIT_URL =
-  import.meta.env.VITE_LIVEKIT_URL || "ws://localhost:7880";
+const FALLBACK_LIVEKIT_URL = LIVEKIT_WS_URL;
 
 const LIVEKIT_DOWN_MESSAGE =
   "Could not reach LiveKit server. Make sure Docker LiveKit is running.";

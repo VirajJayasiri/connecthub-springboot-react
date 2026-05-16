@@ -12,8 +12,9 @@ import {
 import VoiceRoomView from "./VoiceRoomView";
 import VideoRoomView from "./VideoRoomView";
 import { joinRoomApi } from "../../services/roomsApi";
+import { API_ORIGIN } from "../../config/env.js";
 
-const API_BASE = "http://localhost:8080";
+const API_BASE = API_ORIGIN;
 
 const TYPE_ICON = { text: MessageSquare, voice: Mic, video: Video };
 const TYPE_LABEL = {

@@ -13,8 +13,9 @@ import {
   Trash2,
 } from "lucide-react";
 import axios from "axios";
+import { API_ORIGIN } from "../config/env.js";
 
-const API_BASE = "http://localhost:8080";
+const API_BASE = API_ORIGIN;
 
 const StatCard = ({ value, label }) => (
   <div className="flex-1 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl p-6 text-center shadow-sm">

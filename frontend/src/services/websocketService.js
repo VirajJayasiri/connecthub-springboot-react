@@ -1,5 +1,6 @@
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
+import { API_ORIGIN } from "../config/env.js";
 
 class WebSocketService {
   constructor() {
@@ -10,7 +11,7 @@ class WebSocketService {
   connect(token, onConnectCallback) {
     if (this.client && this.client.connected) return;
 
-    const socket = new SockJS("http://localhost:8080/ws");
+    const socket = new SockJS(`${API_ORIGIN}/ws`);
     this.client = new Client({
       webSocketFactory: () => socket,
       connectHeaders: {
