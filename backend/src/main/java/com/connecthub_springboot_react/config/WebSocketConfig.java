@@ -69,9 +69,14 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-            .setAllowedOrigins("http://localhost:5173", "http://localhost:5174")
-                .setHandshakeHandler(userHandshakeHandler)
-                .addInterceptors(authHandshakeInterceptor)
-                .withSockJS();
+    .setAllowedOriginPatterns(
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://16.171.173.224",
+        "http://16.171.173.224:*"
+    )
+    .setHandshakeHandler(userHandshakeHandler)
+    .addInterceptors(authHandshakeInterceptor)
+    .withSockJS();
     }
 }
