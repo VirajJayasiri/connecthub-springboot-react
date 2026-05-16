@@ -34,3 +34,8 @@ build/
 
 # Local Spring overrides (secrets)
 **/application-local.properties
+.env
+
+# Frontend
+frontend/node_modules/
+frontend/dist/

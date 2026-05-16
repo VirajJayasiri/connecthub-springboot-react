@@ -1,4 +1,29 @@
-version: '3'
+# ConnectHub — run backend + frontend together
+# Usage: copy .env.example to .env, fill values, then: docker compose up --build
 
 services:
-    sc
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: connecthub-backend
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      # Override LiveKit URL when LiveKit runs on your PC (not inside this compose file)
+      # URL returned to the browser (use localhost, not host.docker.internal)
+      LIVEKIT_URL: ${LIVEKIT_URL:-ws://localhost:7880}
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: connecthub-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
